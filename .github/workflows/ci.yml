@@ -48,4 +48,8 @@ jobs:
           ansible --version 2>&1 || true
 
       - name: Run ansible-lint
-        run: ansible-lint -v install.yml
+        run: |
+          ansible-lint -v install.yml 2>&1 | tee /tmp/ansible-lint-out.txt
+          echo "## ansible-lint output" >> "$GITHUB_STEP_SUMMARY"
+          cat /tmp/ansible-lint-out.txt >> "$GITHUB_STEP_SUMMARY"
+          grep -q "^Passed" /tmp/ansible-lint-out.txt
