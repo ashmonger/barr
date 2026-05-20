@@ -1,0 +1,17 @@
+[Unit]
+Description=Jellyseerr
+After=network.target
+
+[Service]
+User={{ jellyseerr_user }}
+Group={{ jellyseerr_user }}
+Type=simple
+WorkingDirectory={{ jellyseerr_install_dir }}
+ExecStart=/usr/bin/node dist/index.js
+Environment=NODE_ENV=production
+Environment=CONFIG_DIRECTORY={{ jellyseerr_data_dir }}
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

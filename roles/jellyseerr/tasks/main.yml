@@ -1,0 +1,87 @@
+---
+- name: Jellyseerr | Create system group
+  ansible.builtin.group:
+    name: "{{ jellyseerr_user }}"
+    system: true
+
+- name: Jellyseerr | Create system user
+  ansible.builtin.user:
+    name: "{{ jellyseerr_user }}"
+    group: "{{ jellyseerr_user }}"
+    home: "{{ jellyseerr_data_dir }}"
+    shell: /usr/sbin/nologin
+    system: true
+    create_home: true
+
+- name: Jellyseerr | Create install directory
+  ansible.builtin.file:
+    path: "{{ jellyseerr_install_dir }}"
+    state: directory
+    owner: "{{ jellyseerr_user }}"
+    group: "{{ jellyseerr_user }}"
+    mode: '0750'
+
+- name: Jellyseerr | Check if built app exists
+  ansible.builtin.stat:
+    path: "{{ jellyseerr_install_dir }}/dist/index.js"
+  register: jellyseerr_dist
+
+- name: Jellyseerr | Get latest release from GitHub
+  ansible.builtin.uri:
+    url: "https://api.github.com/repos/fallenbagel/jellyseerr/releases/latest"
+    headers:
+      Accept: application/vnd.github.v3+json
+      Authorization: "{{ 'Bearer ' + github_token if github_token is defined else omit }}"
+    return_content: true
+  register: jellyseerr_release
+  when: not jellyseerr_dist.stat.exists
+
+- name: Jellyseerr | Download source archive
+  ansible.builtin.get_url:
+    url: "{{ jellyseerr_release.json.tarball_url }}"
+    dest: /tmp/jellyseerr.tar.gz
+    mode: '0644'
+  when: not jellyseerr_dist.stat.exists
+
+- name: Jellyseerr | Extract source
+  ansible.builtin.unarchive:
+    src: /tmp/jellyseerr.tar.gz
+    dest: "{{ jellyseerr_install_dir }}"
+    extra_opts:
+      - --strip-components=1
+    owner: "{{ jellyseerr_user }}"
+    group: "{{ jellyseerr_user }}"
+    remote_src: true
+  when: not jellyseerr_dist.stat.exists
+
+- name: Jellyseerr | Install npm dependencies
+  ansible.builtin.command:
+    cmd: npm install --production=false
+    chdir: "{{ jellyseerr_install_dir }}"
+  become_user: "{{ jellyseerr_user }}"
+  when: not jellyseerr_dist.stat.exists
+
+- name: Jellyseerr | Build application
+  ansible.builtin.command:
+    cmd: npm run build
+    chdir: "{{ jellyseerr_install_dir }}"
+  become_user: "{{ jellyseerr_user }}"
+  environment:
+    NODE_ENV: production
+  when: not jellyseerr_dist.stat.exists
+
+- name: Jellyseerr | Install systemd unit
+  ansible.builtin.template:
+    src: jellyseerr.service.j2
+    dest: /etc/systemd/system/jellyseerr.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify: systemd daemon-reload
+
+- name: Jellyseerr | Enable and start service
+  ansible.builtin.systemd:
+    name: jellyseerr
+    enabled: true
+    state: started
+    daemon_reload: true
