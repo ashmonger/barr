@@ -19,3 +19,12 @@ rules:
   # Allow one space inside braces for Jinja2 expressions.
   braces:
     max-spaces-inside: 1
+
+  # Required by ansible-lint v24: prevents misinterpretation of Ansible
+  # task indentation as YAML comment indentation issues.
+  comments-indentation: false
+
+  # Required by ansible-lint v24: prevent silent octal literal bugs.
+  octal-values:
+    forbid-implicit-octal: true
+    forbid-explicit-octal: true

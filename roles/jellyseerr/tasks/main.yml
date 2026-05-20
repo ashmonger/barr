@@ -66,6 +66,7 @@
   ansible.builtin.command:
     cmd: npm run build
     chdir: "{{ jellyseerr_install_dir }}"
+  become: true
   become_user: "{{ jellyseerr_user }}"
   environment:
     NODE_ENV: production
