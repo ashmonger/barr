@@ -1,0 +1,215 @@
+---
+# ── Media group ───────────────────────────────────────────────────────────────
+# All *arr users and qBittorrent are added to this group for shared access.
+arr_media_group: media
+
+# ── Media paths ───────────────────────────────────────────────────────────────
+# Root directories for media and downloads. Adjust to your mount points.
+arr_media_root: /data/media
+arr_media_movies: "{{ arr_media_root }}/movies"
+arr_media_tv: "{{ arr_media_root }}/tv"
+arr_media_music: "{{ arr_media_root }}/music"
+
+arr_downloads_root: /data/downloads
+arr_downloads_complete: "{{ arr_downloads_root }}/complete"
+arr_downloads_incomplete: "{{ arr_downloads_root }}/incomplete"
+
+# Directories the common role will create and assign to arr_media_group.
+arr_managed_dirs:
+  - "{{ arr_media_movies }}"
+  - "{{ arr_media_tv }}"
+  - "{{ arr_media_music }}"
+  - "{{ arr_downloads_complete }}"
+  - "{{ arr_downloads_incomplete }}"
+
+# ── Servarr apps ──────────────────────────────────────────────────────────────
+# Optional: GitHub token to avoid unauthenticated API rate limits (60 req/h)
+# github_token: ghp_xxxxxxxxxxxx
+
+servarr_apps:
+  - name: Prowlarr
+    user: prowlarr
+    group: prowlarr
+    port: 9696
+    install_dir: /opt/Prowlarr
+    data_dir: /var/lib/prowlarr
+    github_repo: Prowlarr/Prowlarr
+    asset_pattern: 'linux(-core)?-x64\.tar\.gz'
+
+  - name: Sonarr
+    user: sonarr
+    group: sonarr
+    port: 8989
+    install_dir: /opt/Sonarr
+    data_dir: /var/lib/sonarr
+    github_repo: Sonarr/Sonarr
+    asset_pattern: 'linux(-core)?-x64\.tar\.gz'
+    # Root folder where Sonarr manages TV shows
+    media_dir: "{{ arr_media_tv }}"
+    qbt_category: tv-sonarr
+    qbt_category_field: tvCategory
+
+  - name: Radarr
+    user: radarr
+    group: radarr
+    port: 7878
+    install_dir: /opt/Radarr
+    data_dir: /var/lib/radarr
+    github_repo: Radarr/Radarr
+    asset_pattern: 'linux(-core)?-x64\.tar\.gz'
+    media_dir: "{{ arr_media_movies }}"
+    qbt_category: radarr
+    qbt_category_field: movieCategory
+
+  - name: Lidarr
+    user: lidarr
+    group: lidarr
+    port: 8686
+    install_dir: /opt/Lidarr
+    data_dir: /var/lib/lidarr
+    github_repo: Lidarr/Lidarr
+    asset_pattern: 'linux(-core)?-x64\.tar\.gz'
+    media_dir: "{{ arr_media_music }}"
+    qbt_category: lidarr
+    qbt_category_field: musicCategory
+
+
+# ── Bazarr ────────────────────────────────────────────────────────────────────
+bazarr_user: bazarr
+bazarr_group: bazarr
+bazarr_port: 6767
+bazarr_install_dir: /opt/bazarr
+bazarr_data_dir: /var/lib/bazarr
+bazarr_github_repo: morpheus65535/bazarr
+bazarr_asset_pattern: 'bazarr\.zip'
+
+# ── qBittorrent ───────────────────────────────────────────────────────────────
+qbittorrent_system_user: qbittorrent
+qbittorrent_home_dir: /var/lib/qbittorrent
+qbittorrent_port: 8080
+# LocalHostAuth=false is set in the config so arr apps connect without
+# credentials. Secure external access via a reverse proxy + firewall.
+
+# ── FlareSolverr ─────────────────────────────────────────────────────────────
+flaresolverr_user: flaresolverr
+flaresolverr_home_dir: /var/lib/flaresolverr
+flaresolverr_install_dir: /opt/flaresolverr
+flaresolverr_port: 8191
+
+# ── Unpackerr ─────────────────────────────────────────────────────────────────
+unpackerr_user: unpackerr
+unpackerr_install_dir: /opt/unpackerr
+unpackerr_config_dir: /etc/unpackerr
+
+# ── Recyclarr ─────────────────────────────────────────────────────────────────
+recyclarr_user: recyclarr
+recyclarr_install_dir: /opt/recyclarr
+recyclarr_config_dir: /etc/recyclarr
+
+# ── Jellyseerr ────────────────────────────────────────────────────────────────
+jellyseerr_user: jellyseerr
+jellyseerr_install_dir: /opt/jellyseerr
+jellyseerr_data_dir: /var/lib/jellyseerr
+jellyseerr_port: 5055
+
+# ── Homarr ────────────────────────────────────────────────────────────────────
+homarr_user: homarr
+homarr_install_dir: /opt/homarr
+homarr_data_dir: /var/lib/homarr
+homarr_port: 7575
+
+# ── Decluttarr ────────────────────────────────────────────────────────────────
+decluttarr_user: decluttarr
+decluttarr_install_dir: /opt/decluttarr
+decluttarr_config_dir: /etc/decluttarr
+decluttarr_remove_timer: 10        # minutes between queue checks
+decluttarr_remove_failed: true
+decluttarr_remove_stalled: true
+decluttarr_remove_metadata_missing: true
+decluttarr_remove_missing_files: true
+decluttarr_remove_orphans: true
+decluttarr_ignore_private_trackers: true
+decluttarr_test_run: false         # set true to log actions without removing
+decluttarr_log_level: INFO
+
+# ── Caddy ─────────────────────────────────────────────────────────────────────
+# Set caddy_domain to your domain (e.g. "home.example.com").
+# caddy_tls: "auto"     → Let's Encrypt (requires port 80/443 reachable)
+# caddy_tls: "internal" → self-signed cert (for LAN-only setups)
+caddy_domain: "change.me"
+caddy_tls: internal
+
+caddy_routes:
+  - host: "{{ caddy_domain }}"
+    port: "{{ homarr_port }}"
+  - host: "requests.{{ caddy_domain }}"
+    port: "{{ jellyseerr_port }}"
+  - host: "prowlarr.{{ caddy_domain }}"
+    port: "{{ (servarr_apps | selectattr('name', 'equalto', 'Prowlarr') | list | first).port }}"
+  - host: "sonarr.{{ caddy_domain }}"
+    port: "{{ (servarr_apps | selectattr('name', 'equalto', 'Sonarr') | list | first).port }}"
+  - host: "radarr.{{ caddy_domain }}"
+    port: "{{ (servarr_apps | selectattr('name', 'equalto', 'Radarr') | list | first).port }}"
+  - host: "lidarr.{{ caddy_domain }}"
+    port: "{{ (servarr_apps | selectattr('name', 'equalto', 'Lidarr') | list | first).port }}"
+  - host: "bazarr.{{ caddy_domain }}"
+    port: "{{ bazarr_port }}"
+  - host: "qbit.{{ caddy_domain }}"
+    port: "{{ qbittorrent_port }}"
+
+# ── Healthchecks.io ───────────────────────────────────────────────────────────
+# How it works:
+#   1. Create a check on healthchecks.io for each service (period = ping_interval_minutes).
+#   2. Paste the ping URL below (https://hc-ping.com/<uuid>).
+#   3. In healthchecks.io → Integrations, add a Discord webhook — no further
+#      Ansible config needed; Discord alerts are managed on the hc.io side.
+#   4. Re-run the playbook. Timers are only created for non-empty ping_url entries.
+#
+# Leave ping_url empty ("") to skip monitoring for that service.
+
+healthchecks_ping_interval_minutes: 5
+
+healthchecks_services:
+  - name: prowlarr
+    systemd_unit: prowlarr
+    ping_url: ""
+
+  - name: sonarr
+    systemd_unit: sonarr
+    ping_url: ""
+
+  - name: radarr
+    systemd_unit: radarr
+    ping_url: ""
+
+  - name: lidarr
+    systemd_unit: lidarr
+    ping_url: ""
+
+  - name: bazarr
+    systemd_unit: bazarr
+    ping_url: ""
+
+  - name: qbittorrent
+    systemd_unit: qbittorrent
+    ping_url: ""
+
+  - name: flaresolverr
+    systemd_unit: flaresolverr
+    ping_url: ""
+
+  - name: unpackerr
+    systemd_unit: unpackerr
+    ping_url: ""
+
+  - name: decluttarr
+    systemd_unit: decluttarr
+    ping_url: ""
+
+  - name: jellyseerr
+    systemd_unit: jellyseerr
+    ping_url: ""
+
+  - name: homarr
+    systemd_unit: homarr
+    ping_url: ""

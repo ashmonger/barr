@@ -1,0 +1,70 @@
+---
+- name: Install and configure *arr media suite
+  hosts: arr_servers
+  become: true
+
+  pre_tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+  tasks:
+    - name: Install common system dependencies
+      ansible.builtin.include_role:
+        name: common
+
+    - name: Install Node.js
+      ansible.builtin.include_role:
+        name: nodejs
+
+    - name: Install Servarr apps
+      ansible.builtin.include_role:
+        name: servarr
+      vars:
+        app: "{{ item }}"
+      loop: "{{ servarr_apps }}"
+
+    - name: Install Bazarr
+      ansible.builtin.include_role:
+        name: bazarr
+
+    - name: Install qBittorrent
+      ansible.builtin.include_role:
+        name: qbittorrent
+
+    - name: Install FlareSolverr
+      ansible.builtin.include_role:
+        name: flaresolverr
+
+    - name: Install Unpackerr
+      ansible.builtin.include_role:
+        name: unpackerr
+
+    - name: Install Recyclarr
+      ansible.builtin.include_role:
+        name: recyclarr
+
+    - name: Install Decluttarr
+      ansible.builtin.include_role:
+        name: decluttarr
+
+    - name: Install Jellyseerr
+      ansible.builtin.include_role:
+        name: jellyseerr
+
+    - name: Install Homarr
+      ansible.builtin.include_role:
+        name: homarr
+
+    - name: Install Caddy
+      ansible.builtin.include_role:
+        name: caddy
+
+    - name: Configure service connections
+      ansible.builtin.include_role:
+        name: arr_configure
+
+    - name: Deploy healthchecks.io monitoring
+      ansible.builtin.include_role:
+        name: healthchecks
