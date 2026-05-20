@@ -1,0 +1,18 @@
+[Unit]
+Description=FlareSolverr
+After=network.target
+
+[Service]
+User={{ flaresolverr_user }}
+Group={{ flaresolverr_user }}
+Type=simple
+WorkingDirectory={{ flaresolverr_install_dir }}
+ExecStart={{ flaresolverr_install_dir }}/flaresolverr
+Environment=PORT={{ flaresolverr_port }}
+Environment=LOG_LEVEL=info
+Environment=HOME={{ flaresolverr_home_dir }}
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

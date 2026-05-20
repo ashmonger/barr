@@ -1,0 +1,85 @@
+---
+- name: FlareSolverr | Install Chromium
+  ansible.builtin.apt:
+    name: chromium
+    state: present
+
+- name: FlareSolverr | Create system group
+  ansible.builtin.group:
+    name: "{{ flaresolverr_user }}"
+    system: true
+
+- name: FlareSolverr | Create system user
+  ansible.builtin.user:
+    name: "{{ flaresolverr_user }}"
+    group: "{{ flaresolverr_user }}"
+    home: "{{ flaresolverr_home_dir }}"
+    shell: /usr/sbin/nologin
+    system: true
+    create_home: true
+
+- name: FlareSolverr | Create install directory
+  ansible.builtin.file:
+    path: "{{ flaresolverr_install_dir }}"
+    state: directory
+    owner: "{{ flaresolverr_user }}"
+    group: "{{ flaresolverr_user }}"
+    mode: '0750'
+
+- name: FlareSolverr | Check if binary exists
+  ansible.builtin.stat:
+    path: "{{ flaresolverr_install_dir }}/flaresolverr"
+  register: flaresolverr_binary
+
+- name: FlareSolverr | Get latest release from GitHub
+  ansible.builtin.uri:
+    url: "https://api.github.com/repos/FlareSolverr/FlareSolverr/releases/latest"
+    headers:
+      Accept: application/vnd.github.v3+json
+      Authorization: "{{ 'Bearer ' + github_token if github_token is defined else omit }}"
+    return_content: true
+  register: flaresolverr_release
+  when: not flaresolverr_binary.stat.exists
+
+- name: FlareSolverr | Resolve download URL
+  ansible.builtin.set_fact:
+    _flaresolverr_url: >-
+      {{ flaresolverr_release.json.assets
+         | selectattr('name', 'search', 'linux-x64\.tar\.gz')
+         | map(attribute='browser_download_url')
+         | first }}
+  when: not flaresolverr_binary.stat.exists
+
+- name: FlareSolverr | Download archive
+  ansible.builtin.get_url:
+    url: "{{ _flaresolverr_url }}"
+    dest: /tmp/flaresolverr.tar.gz
+    mode: '0644'
+  when: not flaresolverr_binary.stat.exists
+
+- name: FlareSolverr | Extract archive
+  ansible.builtin.unarchive:
+    src: /tmp/flaresolverr.tar.gz
+    dest: "{{ flaresolverr_install_dir }}"
+    extra_opts:
+      - --strip-components=1
+    owner: "{{ flaresolverr_user }}"
+    group: "{{ flaresolverr_user }}"
+    remote_src: true
+  when: not flaresolverr_binary.stat.exists
+
+- name: FlareSolverr | Install systemd unit
+  ansible.builtin.template:
+    src: flaresolverr.service.j2
+    dest: /etc/systemd/system/flaresolverr.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify: systemd daemon-reload
+
+- name: FlareSolverr | Enable and start service
+  ansible.builtin.systemd:
+    name: flaresolverr
+    enabled: true
+    state: started
+    daemon_reload: true
