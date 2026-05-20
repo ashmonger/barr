@@ -40,9 +40,12 @@ jobs:
 
       - name: Debug environment
         run: |
-          ansible-lint --version
-          ansible --version
           python3 --version
+          which ansible-lint || echo "ansible-lint not in PATH"
+          python3 -m pip show ansible-lint | head -5
+          ansible-lint --version || true
+          which ansible || echo "ansible not in PATH"
+          ansible --version 2>&1 || true
 
       - name: Run ansible-lint
         run: ansible-lint -v install.yml
