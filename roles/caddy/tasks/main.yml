@@ -5,21 +5,31 @@
       - debian-keyring
       - debian-archive-keyring
       - apt-transport-https
+      - gnupg
     state: present
 
-- name: Caddy | Import Caddy GPG key
-  ansible.builtin.shell:
-    cmd: >
-      curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key'
-      | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+- name: Caddy | Check if GPG keyring exists
+  ansible.builtin.stat:
+    path: /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+  register: _caddy_gpg_keyring
+
+- name: Caddy | Download Caddy GPG key
+  ansible.builtin.get_url:
+    url: 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key'
+    dest: /tmp/caddy-gpg-armored.key
+    mode: '0644'
+  when: not _caddy_gpg_keyring.stat.exists
+
+- name: Caddy | Dearmor Caddy GPG key
+  ansible.builtin.command:
+    cmd: gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg /tmp/caddy-gpg-armored.key
     creates: /usr/share/keyrings/caddy-stable-archive-keyring.gpg
 
 - name: Caddy | Add Caddy apt repository
-  ansible.builtin.shell:
-    cmd: >
-      curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt'
-      | tee /etc/apt/sources.list.d/caddy-stable.list
-    creates: /etc/apt/sources.list.d/caddy-stable.list
+  ansible.builtin.get_url:
+    url: 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt'
+    dest: /etc/apt/sources.list.d/caddy-stable.list
+    mode: '0644'
 
 - name: Caddy | Install caddy
   ansible.builtin.apt:
@@ -34,7 +44,7 @@
     owner: root
     group: root
     mode: '0644'
-  notify: reload caddy
+  notify: Caddy | Reload
 
 - name: Caddy | Enable and start service
   ansible.builtin.systemd:

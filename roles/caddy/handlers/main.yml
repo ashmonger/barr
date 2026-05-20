@@ -1,5 +1,5 @@
 ---
-- name: reload caddy
+- name: Caddy | Reload
   ansible.builtin.systemd:
     name: caddy
     state: reloaded

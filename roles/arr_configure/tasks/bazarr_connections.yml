@@ -19,7 +19,7 @@
     owner: "{{ bazarr_user }}"
     group: "{{ bazarr_group }}"
     mode: '0640'
-  notify: restart bazarr
+  notify: Bazarr | Restart
 
 - name: Bazarr | Configure Radarr connection in config.ini
   ansible.builtin.blockinfile:
@@ -36,7 +36,7 @@
     owner: "{{ bazarr_user }}"
     group: "{{ bazarr_group }}"
     mode: '0640'
-  notify: restart bazarr
+  notify: Bazarr | Restart
 
 # Add a Bazarr webhook in Sonarr so it's notified on import/upgrade.
 - name: Bazarr | Check existing Sonarr notifications

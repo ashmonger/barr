@@ -1,9 +1,9 @@
 ---
-- name: systemd daemon-reload
+- name: Systemd | Daemon reload
   ansible.builtin.systemd:
     daemon_reload: true
 
-- name: restart bazarr
+- name: Bazarr | Restart
   ansible.builtin.systemd:
     name: bazarr
     state: restarted

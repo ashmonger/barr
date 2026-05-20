@@ -61,15 +61,22 @@ die()  { echo -e "${R}[ERR ]${N}  $*" >&2; exit 1; }
 step() { echo -e "\n${B}──── $* ────${N}"; }
 
 # ── SSH helpers ───────────────────────────────────────────────────────────────
-SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-          -o LogLevel=ERROR -o ConnectTimeout=5 \
-          -i ${SSH_KEY} -p ${SSH_PORT}"
+SSH_OPTS=(
+  -o StrictHostKeyChecking=no
+  -o UserKnownHostsFile=/dev/null
+  -o LogLevel=ERROR
+  -o ConnectTimeout=5
+  -i "${SSH_KEY}"
+  -p "${SSH_PORT}"
+)
 
-vm_ssh() { ssh ${SSH_OPTS} "${DEPLOY_USER}@127.0.0.1" "$@"; }
+# SC2029: user@host intentionally expands on the client side.
+# shellcheck disable=SC2029
+vm_ssh() { ssh "${SSH_OPTS[@]}" "${DEPLOY_USER}@127.0.0.1" "$@"; }
 
 vm_rsync() {
   rsync -az --delete \
-    -e "ssh ${SSH_OPTS}" \
+    -e "ssh ${SSH_OPTS[*]}" \
     "$@"
 }
 
@@ -395,8 +402,8 @@ main() {
     stop)  stop_vm ;;
     ssh)
       vm_is_running || die "VM is not running."
-      # shellcheck disable=SC2086
-      ssh ${SSH_OPTS} "${DEPLOY_USER}@127.0.0.1"
+      # shellcheck disable=SC2029
+      ssh "${SSH_OPTS[@]}" "${DEPLOY_USER}@127.0.0.1"
       ;;
     run)
       vm_is_running || die "VM is not running. Start it first."
