@@ -1,0 +1,60 @@
+---
+- name: qBittorrent | Install package
+  ansible.builtin.apt:
+    name: qbittorrent-nox
+    state: present
+
+- name: qBittorrent | Create system group
+  ansible.builtin.group:
+    name: "{{ qbittorrent_system_user }}"
+    system: true
+
+- name: qBittorrent | Create system user
+  ansible.builtin.user:
+    name: "{{ qbittorrent_system_user }}"
+    group: "{{ qbittorrent_system_user }}"
+    home: "{{ qbittorrent_home_dir }}"
+    shell: /usr/sbin/nologin
+    system: true
+    create_home: true
+
+- name: qBittorrent | Add user to media group
+  ansible.builtin.user:
+    name: "{{ qbittorrent_system_user }}"
+    groups: "{{ arr_media_group }}"
+    append: true
+  when: arr_media_group is defined and arr_media_group | length > 0
+
+- name: qBittorrent | Create config directory
+  ansible.builtin.file:
+    path: "{{ qbittorrent_home_dir }}/.config/qBittorrent"
+    state: directory
+    owner: "{{ qbittorrent_system_user }}"
+    group: "{{ qbittorrent_system_user }}"
+    mode: '0750'
+
+- name: qBittorrent | Write config
+  ansible.builtin.template:
+    src: qbittorrent.conf.j2
+    dest: "{{ qbittorrent_home_dir }}/.config/qBittorrent/qBittorrent.conf"
+    owner: "{{ qbittorrent_system_user }}"
+    group: "{{ qbittorrent_system_user }}"
+    mode: '0640'
+    force: false
+  notify: restart qbittorrent
+
+- name: qBittorrent | Install systemd unit
+  ansible.builtin.template:
+    src: qbittorrent.service.j2
+    dest: /etc/systemd/system/qbittorrent.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify: systemd daemon-reload
+
+- name: qBittorrent | Enable and start service
+  ansible.builtin.systemd:
+    name: qbittorrent
+    enabled: true
+    state: started
+    daemon_reload: true

@@ -1,0 +1,15 @@
+[LegalNotice]
+Accepted=true
+
+[Preferences]
+WebUI\Port={{ qbittorrent_port }}
+# Localhost connections (arr apps) bypass authentication.
+# Secure external access separately (reverse proxy + firewall).
+WebUI\LocalHostAuth=false
+Downloads\SavePath={{ arr_downloads_complete }}/
+Downloads\TempPath={{ arr_downloads_incomplete }}/
+Downloads\TempPathEnabled=true
+Downloads\PreAllocation=false
+Queueing\MaxActiveDownloads=5
+Queueing\MaxActiveTorrents=10
+Queueing\MaxActiveUploads=5
