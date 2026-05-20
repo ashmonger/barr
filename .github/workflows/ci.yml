@@ -35,24 +35,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install ansible-lint
-        # ansible-lint bundles ansible-core; no separate ansible install needed.
-        run: pip install "ansible-lint==24.12.2"
-
-      - name: Debug environment
+        # Use a venv to isolate from the system ansible package on ubuntu-latest.
         run: |
-          python3 --version
-          which ansible-lint || echo "ansible-lint not in PATH"
-          python3 -m pip show ansible-lint | head -5
-          ansible-lint --version || true
-          which ansible || echo "ansible not in PATH"
-          ansible --version 2>&1 || true
+          python3 -m venv /opt/alv
+          /opt/alv/bin/pip install --quiet "ansible-lint==24.12.2"
 
       - name: Run ansible-lint
-        run: ansible-lint -v install.yml 2>&1 | tee ansible-lint-output.txt; exit "${PIPESTATUS[0]}"
-
-      - name: Upload lint output
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ansible-lint-output
-          path: ansible-lint-output.txt
+        run: /opt/alv/bin/ansible-lint install.yml
