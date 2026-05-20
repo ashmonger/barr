@@ -5,45 +5,37 @@
 # The Sonarr/Radarr webhook notifications to Bazarr are added via their APIs.
 
 - name: Bazarr | Configure Sonarr connection in config.ini
-  ansible.builtin.ini_file:
+  ansible.builtin.blockinfile:
     path: "{{ bazarr_data_dir }}/config.ini"
-    section: sonarr
-    option: "{{ item.key }}"
-    value: "{{ item.value }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK: sonarr"
+    block: |
+      [sonarr]
+      enabled = True
+      ip = localhost
+      port = {{ (servarr_apps | selectattr('name', 'equalto', 'Sonarr') | list | first).port }}
+      base_url = /
+      ssl = False
+      apikey = {{ sonarr_api_key }}
     owner: "{{ bazarr_user }}"
     group: "{{ bazarr_group }}"
     mode: '0640'
-  loop:
-    - { key: enabled, value: "True" }
-    - { key: ip, value: "localhost" }
-    - { key: port, value: "{{ (servarr_apps | selectattr('name', 'equalto', 'Sonarr') | list | first).port }}" }
-    - { key: base_url, value: "/" }
-    - { key: ssl, value: "False" }
-    - { key: apikey, value: "{{ sonarr_api_key }}" }
-  loop_control:
-    loop_var: item
-    label: "sonarr.{{ item.key }}"
   notify: restart bazarr
 
 - name: Bazarr | Configure Radarr connection in config.ini
-  ansible.builtin.ini_file:
+  ansible.builtin.blockinfile:
     path: "{{ bazarr_data_dir }}/config.ini"
-    section: radarr
-    option: "{{ item.key }}"
-    value: "{{ item.value }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK: radarr"
+    block: |
+      [radarr]
+      enabled = True
+      ip = localhost
+      port = {{ (servarr_apps | selectattr('name', 'equalto', 'Radarr') | list | first).port }}
+      base_url = /
+      ssl = False
+      apikey = {{ radarr_api_key }}
     owner: "{{ bazarr_user }}"
     group: "{{ bazarr_group }}"
     mode: '0640'
-  loop:
-    - { key: enabled, value: "True" }
-    - { key: ip, value: "localhost" }
-    - { key: port, value: "{{ (servarr_apps | selectattr('name', 'equalto', 'Radarr') | list | first).port }}" }
-    - { key: base_url, value: "/" }
-    - { key: ssl, value: "False" }
-    - { key: apikey, value: "{{ radarr_api_key }}" }
-  loop_control:
-    loop_var: item
-    label: "radarr.{{ item.key }}"
   notify: restart bazarr
 
 # Add a Bazarr webhook in Sonarr so it's notified on import/upgrade.
