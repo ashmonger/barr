@@ -1,0 +1,14 @@
+[Unit]
+Description=Unpackerr
+After=network.target
+
+[Service]
+User={{ unpackerr_user }}
+Group={{ unpackerr_user }}
+Type=simple
+ExecStart={{ unpackerr_install_dir }}/unpackerr --config {{ unpackerr_config_dir }}/unpackerr.conf
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,88 @@
+---
+- name: Unpackerr | Create system group
+  ansible.builtin.group:
+    name: "{{ unpackerr_user }}"
+    system: true
+
+- name: Unpackerr | Create system user
+  ansible.builtin.user:
+    name: "{{ unpackerr_user }}"
+    group: "{{ unpackerr_user }}"
+    shell: /usr/sbin/nologin
+    system: true
+    create_home: false
+
+- name: Unpackerr | Add user to media group
+  ansible.builtin.user:
+    name: "{{ unpackerr_user }}"
+    groups: "{{ arr_media_group }}"
+    append: true
+  when: arr_media_group is defined and arr_media_group | length > 0
+
+- name: Unpackerr | Create directories
+  ansible.builtin.file:
+    path: "{{ dir }}"
+    state: directory
+    owner: "{{ unpackerr_user }}"
+    group: "{{ unpackerr_user }}"
+    mode: '0750'
+  loop:
+    - "{{ unpackerr_install_dir }}"
+    - "{{ unpackerr_config_dir }}"
+  loop_control:
+    loop_var: dir
+
+- name: Unpackerr | Check if binary exists
+  ansible.builtin.stat:
+    path: "{{ unpackerr_install_dir }}/unpackerr"
+  register: unpackerr_binary
+
+- name: Unpackerr | Get latest release from GitHub
+  ansible.builtin.uri:
+    url: "https://api.github.com/repos/Unpackerr/unpackerr/releases/latest"
+    headers:
+      Accept: application/vnd.github.v3+json
+      Authorization: "{{ 'Bearer ' + github_token if github_token is defined else omit }}"
+    return_content: true
+  register: unpackerr_release
+  when: not unpackerr_binary.stat.exists
+
+- name: Unpackerr | Resolve download URL
+  ansible.builtin.set_fact:
+    _unpackerr_url: >-
+      {{ unpackerr_release.json.assets
+         | selectattr('name', 'search', 'linux.*amd64\.tar\.gz')
+         | map(attribute='browser_download_url')
+         | first }}
+  when: not unpackerr_binary.stat.exists
+
+- name: Unpackerr | Download archive
+  ansible.builtin.get_url:
+    url: "{{ _unpackerr_url }}"
+    dest: /tmp/unpackerr.tar.gz
+    mode: '0644'
+  when: not unpackerr_binary.stat.exists
+
+- name: Unpackerr | Extract binary
+  ansible.builtin.unarchive:
+    src: /tmp/unpackerr.tar.gz
+    dest: "{{ unpackerr_install_dir }}"
+    owner: "{{ unpackerr_user }}"
+    group: "{{ unpackerr_user }}"
+    remote_src: true
+  when: not unpackerr_binary.stat.exists
+
+- name: Unpackerr | Install systemd unit
+  ansible.builtin.template:
+    src: unpackerr.service.j2
+    dest: /etc/systemd/system/unpackerr.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify: systemd daemon-reload
+
+- name: Unpackerr | Enable service (started by arr_configure after config is written)
+  ansible.builtin.systemd:
+    name: unpackerr
+    enabled: true
+    daemon_reload: true
