@@ -36,7 +36,7 @@ jobs:
 
       - name: Install ansible-lint
         # ansible-lint bundles ansible-core; no separate ansible install needed.
-        run: pip install --quiet "ansible-lint>=24,<25"
+        run: pip install "ansible-lint==24.12.2"
 
       - name: Run ansible-lint
         run: ansible-lint install.yml
