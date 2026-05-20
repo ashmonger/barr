@@ -1,0 +1,50 @@
+---
+- name: Healthchecks | Install curl
+  ansible.builtin.apt:
+    name: curl
+    state: present
+
+- name: Healthchecks | Deploy ping scripts
+  ansible.builtin.template:
+    src: hc-ping.sh.j2
+    dest: "/usr/local/bin/hc-ping-{{ check.name }}.sh"
+    owner: root
+    group: root
+    mode: '0755'
+  loop: "{{ healthchecks_services | selectattr('ping_url', 'ne', '') | list }}"
+  loop_control:
+    loop_var: check
+
+- name: Healthchecks | Install systemd service units
+  ansible.builtin.template:
+    src: hc-monitor.service.j2
+    dest: "/etc/systemd/system/hc-monitor-{{ check.name }}.service"
+    owner: root
+    group: root
+    mode: '0644'
+  loop: "{{ healthchecks_services | selectattr('ping_url', 'ne', '') | list }}"
+  loop_control:
+    loop_var: check
+  notify: systemd daemon-reload
+
+- name: Healthchecks | Install systemd timer units
+  ansible.builtin.template:
+    src: hc-monitor.timer.j2
+    dest: "/etc/systemd/system/hc-monitor-{{ check.name }}.timer"
+    owner: root
+    group: root
+    mode: '0644'
+  loop: "{{ healthchecks_services | selectattr('ping_url', 'ne', '') | list }}"
+  loop_control:
+    loop_var: check
+  notify: systemd daemon-reload
+
+- name: Healthchecks | Enable and start timers
+  ansible.builtin.systemd:
+    name: "hc-monitor-{{ check.name }}.timer"
+    enabled: true
+    state: started
+    daemon_reload: true
+  loop: "{{ healthchecks_services | selectattr('ping_url', 'ne', '') | list }}"
+  loop_control:
+    loop_var: check

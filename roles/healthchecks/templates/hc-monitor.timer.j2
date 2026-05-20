@@ -1,0 +1,10 @@
+[Unit]
+Description=Healthchecks.io ping timer for {{ check.name }}
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec={{ healthchecks_ping_interval_minutes }}min
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

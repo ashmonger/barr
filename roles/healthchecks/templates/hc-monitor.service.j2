@@ -1,0 +1,7 @@
+[Unit]
+Description=Healthchecks.io ping for {{ check.name }}
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/hc-ping-{{ check.name }}.sh

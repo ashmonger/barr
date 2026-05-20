@@ -1,0 +1,12 @@
+#!/bin/bash
+# Ping healthchecks.io for {{ check.name }}.
+# Signals /fail if the systemd unit is not active.
+
+UNIT="{{ check.systemd_unit }}"
+PING_URL="{{ check.ping_url }}"
+
+if systemctl is-active --quiet "$UNIT"; then
+    curl -fsS --retry 3 --max-time 10 "$PING_URL" > /dev/null
+else
+    curl -fsS --retry 3 --max-time 10 "${PING_URL}/fail" > /dev/null
+fi
