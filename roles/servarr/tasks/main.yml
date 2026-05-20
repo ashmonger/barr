@@ -1,0 +1,92 @@
+---
+- name: "{{ app.name }} | Create system group"
+  ansible.builtin.group:
+    name: "{{ app.group }}"
+    system: true
+
+- name: "{{ app.name }} | Create system user"
+  ansible.builtin.user:
+    name: "{{ app.user }}"
+    group: "{{ app.group }}"
+    home: "{{ app.data_dir }}"
+    shell: /usr/sbin/nologin
+    system: true
+    create_home: false
+
+- name: "{{ app.name }} | Create directories"
+  ansible.builtin.file:
+    path: "{{ dir }}"
+    state: directory
+    owner: "{{ app.user }}"
+    group: "{{ app.group }}"
+    mode: '0750'
+  loop:
+    - "{{ app.install_dir }}"
+    - "{{ app.data_dir }}"
+  loop_control:
+    loop_var: dir
+
+- name: "{{ app.name }} | Check if binary exists"
+  ansible.builtin.stat:
+    path: "{{ app.install_dir }}/{{ app.name }}"
+  register: app_binary
+
+- name: "{{ app.name }} | Get latest release from GitHub"
+  ansible.builtin.uri:
+    url: "https://api.github.com/repos/{{ app.github_repo }}/releases/latest"
+    headers:
+      Accept: application/vnd.github.v3+json
+      Authorization: "{{ 'Bearer ' + github_token if github_token is defined else omit }}"
+    return_content: true
+  register: github_release
+  when: not app_binary.stat.exists
+
+- name: "{{ app.name }} | Resolve download URL"
+  ansible.builtin.set_fact:
+    _app_download_url: >-
+      {{ github_release.json.assets
+         | selectattr('name', 'search', app.asset_pattern)
+         | map(attribute='browser_download_url')
+         | first }}
+  when: not app_binary.stat.exists
+
+- name: "{{ app.name }} | Download archive"
+  ansible.builtin.get_url:
+    url: "{{ _app_download_url }}"
+    dest: "/tmp/{{ app.name | lower }}.tar.gz"
+    mode: '0644'
+  when: not app_binary.stat.exists
+
+- name: "{{ app.name }} | Extract archive"
+  ansible.builtin.unarchive:
+    src: "/tmp/{{ app.name | lower }}.tar.gz"
+    dest: "{{ app.install_dir }}"
+    extra_opts:
+      - --strip-components=1
+    owner: "{{ app.user }}"
+    group: "{{ app.group }}"
+    remote_src: true
+  when: not app_binary.stat.exists
+
+- name: "{{ app.name }} | Add user to media group"
+  ansible.builtin.user:
+    name: "{{ app.user }}"
+    groups: "{{ arr_media_group }}"
+    append: true
+  when: arr_media_group is defined and arr_media_group | length > 0
+
+- name: "{{ app.name }} | Install systemd unit"
+  ansible.builtin.template:
+    src: servarr.service.j2
+    dest: "/etc/systemd/system/{{ app.name | lower }}.service"
+    owner: root
+    group: root
+    mode: '0644'
+  notify: systemd daemon-reload
+
+- name: "{{ app.name }} | Enable and start service"
+  ansible.builtin.systemd:
+    name: "{{ app.name | lower }}"
+    enabled: true
+    state: started
+    daemon_reload: true
