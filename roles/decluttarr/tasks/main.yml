@@ -1,0 +1,100 @@
+---
+- name: Decluttarr | Install Python dependencies
+  ansible.builtin.apt:
+    name:
+      - python3
+      - python3-pip
+      - python3-venv
+    state: present
+
+- name: Decluttarr | Create system group
+  ansible.builtin.group:
+    name: "{{ decluttarr_user }}"
+    system: true
+
+- name: Decluttarr | Create system user
+  ansible.builtin.user:
+    name: "{{ decluttarr_user }}"
+    group: "{{ decluttarr_user }}"
+    shell: /usr/sbin/nologin
+    system: true
+    create_home: false
+
+- name: Decluttarr | Create directories
+  ansible.builtin.file:
+    path: "{{ dir }}"
+    state: directory
+    owner: "{{ decluttarr_user }}"
+    group: "{{ decluttarr_user }}"
+    mode: '0750'
+  loop:
+    - "{{ decluttarr_install_dir }}"
+    - "{{ decluttarr_config_dir }}"
+  loop_control:
+    loop_var: dir
+
+- name: Decluttarr | Check if installed
+  ansible.builtin.stat:
+    path: "{{ decluttarr_install_dir }}/main.py"
+  register: decluttarr_app
+
+- name: Decluttarr | Get latest release from GitHub
+  ansible.builtin.uri:
+    url: "https://api.github.com/repos/ManiMatter/decluttarr/releases/latest"
+    headers:
+      Accept: application/vnd.github.v3+json
+      Authorization: "{{ 'Bearer ' + github_token if github_token is defined else omit }}"
+    return_content: true
+  register: decluttarr_release
+  when: not decluttarr_app.stat.exists
+
+- name: Decluttarr | Download source archive
+  ansible.builtin.get_url:
+    url: "{{ decluttarr_release.json.tarball_url }}"
+    dest: /tmp/decluttarr.tar.gz
+    mode: '0644'
+  when: not decluttarr_app.stat.exists
+
+- name: Decluttarr | Extract source
+  ansible.builtin.unarchive:
+    src: /tmp/decluttarr.tar.gz
+    dest: "{{ decluttarr_install_dir }}"
+    extra_opts:
+      - --strip-components=1
+    owner: "{{ decluttarr_user }}"
+    group: "{{ decluttarr_user }}"
+    remote_src: true
+  when: not decluttarr_app.stat.exists
+
+- name: Decluttarr | Create virtual environment
+  ansible.builtin.command:
+    cmd: python3 -m venv {{ decluttarr_install_dir }}/venv
+    creates: "{{ decluttarr_install_dir }}/venv/bin/activate"
+
+- name: Decluttarr | Install pip requirements
+  ansible.builtin.pip:
+    requirements: "{{ decluttarr_install_dir }}/requirements.txt"
+    virtualenv: "{{ decluttarr_install_dir }}/venv"
+    state: present
+
+- name: Decluttarr | Fix ownership
+  ansible.builtin.file:
+    path: "{{ decluttarr_install_dir }}"
+    owner: "{{ decluttarr_user }}"
+    group: "{{ decluttarr_user }}"
+    recurse: true
+
+- name: Decluttarr | Install systemd unit
+  ansible.builtin.template:
+    src: decluttarr.service.j2
+    dest: /etc/systemd/system/decluttarr.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify: systemd daemon-reload
+
+- name: Decluttarr | Enable service (started by arr_configure after env is written)
+  ansible.builtin.systemd:
+    name: decluttarr
+    enabled: true
+    daemon_reload: true

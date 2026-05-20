@@ -1,0 +1,15 @@
+[Unit]
+Description=Decluttarr
+After=network.target
+
+[Service]
+User={{ decluttarr_user }}
+Group={{ decluttarr_user }}
+Type=simple
+EnvironmentFile={{ decluttarr_config_dir }}/decluttarr.env
+ExecStart={{ decluttarr_install_dir }}/venv/bin/python {{ decluttarr_install_dir }}/main.py
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
