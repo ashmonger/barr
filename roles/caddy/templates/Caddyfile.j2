@@ -1,0 +1,15 @@
+{
+    # Uncomment to use Let's Encrypt staging while testing:
+    # acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+}
+
+{% for route in caddy_routes %}
+{{ route.host }} {
+{% if caddy_tls == 'internal' %}
+    tls internal
+{% endif %}
+    encode gzip
+    reverse_proxy localhost:{{ route.port }}
+}
+
+{% endfor %}
