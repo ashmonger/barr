@@ -1,0 +1,21 @@
+---
+extends: default
+
+rules:
+  # Ansible tasks regularly exceed 80 chars; treat long lines as warnings only.
+  line-length:
+    max: 160
+    level: warning
+
+  # Ansible uses bare true/false; disallow yaml 1.1 yes/no/on/off.
+  truthy:
+    allowed-values: ['true', 'false']
+    check-keys: false
+
+  # One space before inline comments is fine (e.g. key: value  # comment).
+  comments:
+    min-spaces-before-comment: 1
+
+  # Allow one space inside braces for Jinja2 expressions.
+  braces:
+    max-spaces-inside: 1
