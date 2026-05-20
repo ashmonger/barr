@@ -1,0 +1,17 @@
+[Unit]
+Description=Bazarr
+After=network.target
+
+[Service]
+User={{ bazarr_user }}
+Group={{ bazarr_group }}
+Type=simple
+WorkingDirectory={{ bazarr_install_dir }}
+ExecStart={{ bazarr_install_dir }}/venv/bin/python3 {{ bazarr_install_dir }}/bazarr.py --config {{ bazarr_data_dir }}
+TimeoutStopSec=20
+KillMode=process
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

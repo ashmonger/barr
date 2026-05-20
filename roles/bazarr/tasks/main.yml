@@ -1,0 +1,117 @@
+---
+- name: Bazarr | Install system dependencies
+  ansible.builtin.apt:
+    name:
+      - python3
+      - python3-pip
+      - python3-venv
+      - unzip
+      - libxml2-dev
+      - libxslt1-dev
+    state: present
+
+- name: Bazarr | Create system group
+  ansible.builtin.group:
+    name: "{{ bazarr_group }}"
+    system: true
+
+- name: Bazarr | Create system user
+  ansible.builtin.user:
+    name: "{{ bazarr_user }}"
+    group: "{{ bazarr_group }}"
+    home: "{{ bazarr_data_dir }}"
+    shell: /usr/sbin/nologin
+    system: true
+    create_home: false
+
+- name: Bazarr | Create directories
+  ansible.builtin.file:
+    path: "{{ dir }}"
+    state: directory
+    owner: "{{ bazarr_user }}"
+    group: "{{ bazarr_group }}"
+    mode: '0750'
+  loop:
+    - "{{ bazarr_install_dir }}"
+    - "{{ bazarr_data_dir }}"
+  loop_control:
+    loop_var: dir
+
+- name: Bazarr | Check if installed
+  ansible.builtin.stat:
+    path: "{{ bazarr_install_dir }}/bazarr.py"
+  register: bazarr_script
+
+- name: Bazarr | Get latest release from GitHub
+  ansible.builtin.uri:
+    url: "https://api.github.com/repos/{{ bazarr_github_repo }}/releases/latest"
+    headers:
+      Accept: application/vnd.github.v3+json
+      Authorization: "{{ 'Bearer ' + github_token if github_token is defined else omit }}"
+    return_content: true
+  register: bazarr_release
+  when: not bazarr_script.stat.exists
+
+- name: Bazarr | Resolve download URL
+  ansible.builtin.set_fact:
+    _bazarr_download_url: >-
+      {{ bazarr_release.json.assets
+         | selectattr('name', 'search', bazarr_asset_pattern)
+         | map(attribute='browser_download_url')
+         | first }}
+  when: not bazarr_script.stat.exists
+
+- name: Bazarr | Download archive
+  ansible.builtin.get_url:
+    url: "{{ _bazarr_download_url }}"
+    dest: /tmp/bazarr.zip
+    mode: '0644'
+  when: not bazarr_script.stat.exists
+
+- name: Bazarr | Extract archive
+  ansible.builtin.unarchive:
+    src: /tmp/bazarr.zip
+    dest: "{{ bazarr_install_dir }}"
+    remote_src: true
+  when: not bazarr_script.stat.exists
+
+- name: Bazarr | Create virtual environment
+  ansible.builtin.command:
+    cmd: python3 -m venv {{ bazarr_install_dir }}/venv
+    creates: "{{ bazarr_install_dir }}/venv/bin/activate"
+
+- name: Bazarr | Install Python requirements
+  ansible.builtin.pip:
+    requirements: "{{ bazarr_install_dir }}/requirements.txt"
+    virtualenv: "{{ bazarr_install_dir }}/venv"
+    state: present
+
+- name: Bazarr | Set install directory ownership
+  ansible.builtin.file:
+    path: "{{ bazarr_install_dir }}"
+    owner: "{{ bazarr_user }}"
+    group: "{{ bazarr_group }}"
+    recurse: true
+
+- name: Bazarr | Add user to media group
+  ansible.builtin.user:
+    name: "{{ bazarr_user }}"
+    groups: "{{ arr_media_group }}"
+    append: true
+  when: arr_media_group is defined and arr_media_group | length > 0
+
+- name: Bazarr | Install systemd unit
+  ansible.builtin.template:
+    src: bazarr.service.j2
+    dest: /etc/systemd/system/bazarr.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify: systemd daemon-reload
+
+- name: Bazarr | Enable and start service
+  ansible.builtin.systemd:
+    name: bazarr
+    enabled: true
+    state: started
+    daemon_reload: true
