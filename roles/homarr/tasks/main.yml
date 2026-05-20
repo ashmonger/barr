@@ -58,6 +58,7 @@
   ansible.builtin.command:
     cmd: yarn install --frozen-lockfile
     chdir: "{{ homarr_install_dir }}"
+  become: true
   become_user: "{{ homarr_user }}"
   when: not homarr_build.stat.exists
 
@@ -77,7 +78,7 @@
     owner: root
     group: root
     mode: '0644'
-  notify: systemd daemon-reload
+  notify: Systemd | Daemon reload
 
 - name: Homarr | Enable and start service
   ansible.builtin.systemd:

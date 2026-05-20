@@ -58,6 +58,7 @@
   ansible.builtin.command:
     cmd: npm install --production=false
     chdir: "{{ jellyseerr_install_dir }}"
+  become: true
   become_user: "{{ jellyseerr_user }}"
   when: not jellyseerr_dist.stat.exists
 
@@ -77,7 +78,7 @@
     owner: root
     group: root
     mode: '0644'
-  notify: systemd daemon-reload
+  notify: Systemd | Daemon reload
 
 - name: Jellyseerr | Enable and start service
   ansible.builtin.systemd:
