@@ -1,0 +1,9 @@
+[Unit]
+Description=Recyclarr TRaSH Guides sync
+After=network.target sonarr.service radarr.service
+
+[Service]
+Type=oneshot
+User={{ recyclarr_user }}
+Group={{ recyclarr_user }}
+ExecStart={{ recyclarr_install_dir }}/recyclarr sync --config {{ recyclarr_config_dir }}/recyclarr.yml

@@ -1,0 +1,10 @@
+[Unit]
+Description=Recyclarr daily TRaSH Guides sync
+
+[Timer]
+OnBootSec=15min
+OnCalendar=daily
+RandomizedDelaySec=30min
+
+[Install]
+WantedBy=timers.target

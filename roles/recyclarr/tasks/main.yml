@@ -1,0 +1,86 @@
+---
+- name: Recyclarr | Create system group
+  ansible.builtin.group:
+    name: "{{ recyclarr_user }}"
+    system: true
+
+- name: Recyclarr | Create system user
+  ansible.builtin.user:
+    name: "{{ recyclarr_user }}"
+    group: "{{ recyclarr_user }}"
+    shell: /usr/sbin/nologin
+    system: true
+    create_home: false
+
+- name: Recyclarr | Create directories
+  ansible.builtin.file:
+    path: "{{ dir }}"
+    state: directory
+    owner: "{{ recyclarr_user }}"
+    group: "{{ recyclarr_user }}"
+    mode: '0750'
+  loop:
+    - "{{ recyclarr_install_dir }}"
+    - "{{ recyclarr_config_dir }}"
+  loop_control:
+    loop_var: dir
+
+- name: Recyclarr | Check if binary exists
+  ansible.builtin.stat:
+    path: "{{ recyclarr_install_dir }}/recyclarr"
+  register: recyclarr_binary
+
+- name: Recyclarr | Get latest release from GitHub
+  ansible.builtin.uri:
+    url: "https://api.github.com/repos/recyclarr/recyclarr/releases/latest"
+    headers:
+      Accept: application/vnd.github.v3+json
+      Authorization: "{{ 'Bearer ' + github_token if github_token is defined else omit }}"
+    return_content: true
+  register: recyclarr_release
+  when: not recyclarr_binary.stat.exists
+
+- name: Recyclarr | Resolve download URL
+  ansible.builtin.set_fact:
+    _recyclarr_url: >-
+      {{ recyclarr_release.json.assets
+         | selectattr('name', 'search', 'linux-x64\.tar\.gz')
+         | map(attribute='browser_download_url')
+         | first }}
+  when: not recyclarr_binary.stat.exists
+
+- name: Recyclarr | Download archive
+  ansible.builtin.get_url:
+    url: "{{ _recyclarr_url }}"
+    dest: /tmp/recyclarr.tar.gz
+    mode: '0644'
+  when: not recyclarr_binary.stat.exists
+
+- name: Recyclarr | Extract binary
+  ansible.builtin.unarchive:
+    src: /tmp/recyclarr.tar.gz
+    dest: "{{ recyclarr_install_dir }}"
+    owner: "{{ recyclarr_user }}"
+    group: "{{ recyclarr_user }}"
+    remote_src: true
+  when: not recyclarr_binary.stat.exists
+
+- name: Recyclarr | Install systemd units
+  ansible.builtin.template:
+    src: "{{ tmpl }}"
+    dest: "/etc/systemd/system/{{ tmpl | replace('.j2', '') }}"
+    owner: root
+    group: root
+    mode: '0644'
+  loop:
+    - recyclarr.service.j2
+    - recyclarr.timer.j2
+  loop_control:
+    loop_var: tmpl
+  notify: systemd daemon-reload
+
+- name: Recyclarr | Enable timer (started by arr_configure after config is written)
+  ansible.builtin.systemd:
+    name: recyclarr.timer
+    enabled: true
+    daemon_reload: true
