@@ -11,7 +11,21 @@
 #   ./barr-vm.sh clean      delete all VM artefacts (.vm/)
 #
 # Override any variable via environment:
-#   VM_RAM=8192 SSH_PORT=2222 ./barr-vm.sh
+#   VM_RAM=8192 VM_CPUS=4 VM_DISK=80G SSH_PORT=2222 ./barr-vm.sh
+#
+# All overridable variables (with defaults):
+#   DEBIAN_IMG_URL  URL of the Debian genericcloud qcow2 image to download
+#   WORK_DIR        Working directory for VM artefacts  (.vm/)
+#   VM_NAME         QEMU VM name and cloud-init hostname (barr)
+#   VM_RAM          RAM in MiB                           (4096)
+#   VM_CPUS         vCPU count                           (2)
+#   VM_DISK         Overlay disk size (qemu-img syntax)  (40G)
+#   SSH_PORT        Host port forwarded to VM port 22    (2222)
+#   DEPLOY_USER     User created by cloud-init           (deploy)
+#
+# Optional host dependency:
+#   socat — used for graceful ACPI shutdown (stop command).
+#           If absent, stop falls back to SIGTERM immediately.
 
 set -euo pipefail
 
@@ -250,7 +264,8 @@ install_ansible() {
   info "Installing Ansible on the VM..."
   vm_ssh bash << 'REMOTE'
 set -e
-# Wait for any pending apt lock to clear
+# cloud-init may still be running its own apt operations when SSH first
+# becomes available. Poll until the apt lists lock is free (up to 60s).
 for i in $(seq 1 12); do
   sudo flock --nonblock /var/lib/apt/lists/lock true 2>/dev/null && break || sleep 5
 done
