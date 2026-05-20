@@ -1,0 +1,64 @@
+---
+# Add qBittorrent as download client in every Servarr app.
+# LocalHostAuth=false on qBittorrent means no credentials needed.
+# Each app uses a distinct category so qBittorrent routes completed
+# downloads to the right post-processing handler.
+
+- name: Download clients | Check existing clients in each app
+  ansible.builtin.uri:
+    url: "http://localhost:{{ item.port }}/api/v3/downloadclient"
+    method: GET
+    headers:
+      X-Api-Key: "{{ lookup('vars', item.name | lower + '_api_key') }}"
+  register: _existing_clients
+  loop: "{{ servarr_apps }}"
+  loop_control:
+    loop_var: item
+    label: "{{ item.name }}"
+
+- name: Download clients | Add qBittorrent to each app
+  ansible.builtin.uri:
+    url: "http://localhost:{{ item.0.port }}/api/v3/downloadclient"
+    method: POST
+    headers:
+      X-Api-Key: "{{ lookup('vars', item.0.name | lower + '_api_key') }}"
+      Content-Type: application/json
+    body_format: json
+    body:
+      enable: true
+      protocol: torrent
+      priority: 1
+      removeCompletedDownloads: true
+      removeFailedDownloads: true
+      name: qBittorrent
+      implementationName: qBittorrent
+      implementation: QBittorrent
+      configContract: QBittorrentSettings
+      fields:
+        - name: host
+          value: localhost
+        - name: port
+          value: "{{ qbittorrent_port }}"
+        - name: useSsl
+          value: false
+        - name: urlBase
+          value: ""
+        - name: username
+          value: ""
+        - name: password
+          value: ""
+        - name: "{{ item.0.qbt_category_field }}"
+          value: "{{ item.0.qbt_category }}"
+        - name: recentPriority
+          value: 0
+        - name: olderPriority
+          value: 0
+        - name: initialState
+          value: 0
+    status_code: [200, 201]
+  when: >-
+    (item.1.json | selectattr('implementation', 'equalto', 'QBittorrent') | list | length) == 0
+  loop: "{{ servarr_apps | zip(_existing_clients.results) | list }}"
+  loop_control:
+    loop_var: item
+    label: "{{ item.0.name }}"

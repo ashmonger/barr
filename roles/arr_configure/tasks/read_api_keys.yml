@@ -1,0 +1,37 @@
+---
+# Read each app's API key from its config.xml (generated on first boot).
+# Results are stored as host facts: prowlarr_api_key, sonarr_api_key, etc.
+
+- name: Read API keys | Slurp config.xml files
+  ansible.builtin.slurp:
+    src: "{{ item.data_dir }}/config.xml"
+  register: _cfg_raw
+  loop: "{{ servarr_apps }}"
+  loop_control:
+    loop_var: item
+    label: "{{ item.name }}"
+
+- name: Read API keys | Extract from XML
+  ansible.builtin.set_fact:
+    "{{ item.item.name | lower }}_api_key": >-
+      {{ item.content | b64decode
+         | regex_search('<ApiKey>([^<]+)</ApiKey>', '\\1')
+         | first }}
+  loop: "{{ _cfg_raw.results }}"
+  loop_control:
+    loop_var: item
+    label: "{{ item.item.name }}"
+
+- name: Read API keys | Slurp Bazarr config.ini
+  ansible.builtin.slurp:
+    src: "{{ bazarr_data_dir }}/config.ini"
+  register: _bazarr_cfg_raw
+  ignore_errors: true
+
+- name: Read API keys | Extract Bazarr API key
+  ansible.builtin.set_fact:
+    bazarr_api_key: >-
+      {{ _bazarr_cfg_raw.content | b64decode
+         | regex_search('(?m)^apikey\s*=\s*(.+)$', '\\1')
+         | first | trim }}
+  when: not _bazarr_cfg_raw.failed | default(false)

@@ -1,0 +1,48 @@
+---
+- name: Configure | Wait for Servarr APIs to respond
+  ansible.builtin.uri:
+    url: "http://localhost:{{ item.port }}/api/v1/system/status"
+    method: GET
+    status_code: 200
+  register: _api_check
+  until: _api_check.status == 200
+  retries: 30
+  delay: 10
+  loop: "{{ servarr_apps }}"
+  loop_control:
+    loop_var: item
+    label: "{{ item.name }}"
+
+- name: Configure | Wait for Bazarr API to respond
+  ansible.builtin.uri:
+    url: "http://localhost:{{ bazarr_port }}/api/system/status"
+    method: GET
+    status_code: 200
+  register: _bazarr_check
+  until: _bazarr_check.status == 200
+  retries: 30
+  delay: 10
+
+- name: Configure | Read Servarr API keys
+  ansible.builtin.include_tasks: read_api_keys.yml
+
+- name: Configure | Wire Prowlarr applications
+  ansible.builtin.include_tasks: prowlarr_apps.yml
+
+- name: Configure | Register FlareSolverr proxy in Prowlarr
+  ansible.builtin.include_tasks: flaresolverr_proxy.yml
+
+- name: Configure | Configure download clients
+  ansible.builtin.include_tasks: download_clients.yml
+
+- name: Configure | Configure Bazarr connections
+  ansible.builtin.include_tasks: bazarr_connections.yml
+
+- name: Configure | Write Unpackerr config and start service
+  ansible.builtin.include_tasks: unpackerr_config.yml
+
+- name: Configure | Write Recyclarr config and run initial sync
+  ansible.builtin.include_tasks: recyclarr_config.yml
+
+- name: Configure | Write Decluttarr env and start service
+  ansible.builtin.include_tasks: decluttarr_config.yml

@@ -1,0 +1,21 @@
+---
+- name: Recyclarr config | Write config with API keys
+  ansible.builtin.template:
+    src: recyclarr.yml.j2
+    dest: "{{ recyclarr_config_dir }}/recyclarr.yml"
+    owner: "{{ recyclarr_user }}"
+    group: "{{ recyclarr_user }}"
+    mode: '0640'
+  register: _recyclarr_cfg
+
+- name: Recyclarr config | Start timer
+  ansible.builtin.systemd:
+    name: recyclarr.timer
+    state: started
+    daemon_reload: true
+
+- name: Recyclarr config | Run initial sync
+  ansible.builtin.systemd:
+    name: recyclarr.service
+    state: started
+  when: _recyclarr_cfg.changed

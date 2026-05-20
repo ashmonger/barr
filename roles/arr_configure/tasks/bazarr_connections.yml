@@ -1,0 +1,156 @@
+---
+# Configure Bazarr to pull metadata from Sonarr and Radarr.
+# Bazarr stores its settings in config.ini; we write the [sonarr] and [radarr]
+# sections directly, then restart Bazarr to pick them up.
+# The Sonarr/Radarr webhook notifications to Bazarr are added via their APIs.
+
+- name: Bazarr | Configure Sonarr connection in config.ini
+  ansible.builtin.ini_file:
+    path: "{{ bazarr_data_dir }}/config.ini"
+    section: sonarr
+    option: "{{ item.key }}"
+    value: "{{ item.value }}"
+    owner: "{{ bazarr_user }}"
+    group: "{{ bazarr_group }}"
+    mode: '0640'
+  loop:
+    - { key: enabled, value: "True" }
+    - { key: ip, value: "localhost" }
+    - { key: port, value: "{{ (servarr_apps | selectattr('name', 'equalto', 'Sonarr') | list | first).port }}" }
+    - { key: base_url, value: "/" }
+    - { key: ssl, value: "False" }
+    - { key: apikey, value: "{{ sonarr_api_key }}" }
+  loop_control:
+    loop_var: item
+    label: "sonarr.{{ item.key }}"
+  notify: restart bazarr
+
+- name: Bazarr | Configure Radarr connection in config.ini
+  ansible.builtin.ini_file:
+    path: "{{ bazarr_data_dir }}/config.ini"
+    section: radarr
+    option: "{{ item.key }}"
+    value: "{{ item.value }}"
+    owner: "{{ bazarr_user }}"
+    group: "{{ bazarr_group }}"
+    mode: '0640'
+  loop:
+    - { key: enabled, value: "True" }
+    - { key: ip, value: "localhost" }
+    - { key: port, value: "{{ (servarr_apps | selectattr('name', 'equalto', 'Radarr') | list | first).port }}" }
+    - { key: base_url, value: "/" }
+    - { key: ssl, value: "False" }
+    - { key: apikey, value: "{{ radarr_api_key }}" }
+  loop_control:
+    loop_var: item
+    label: "radarr.{{ item.key }}"
+  notify: restart bazarr
+
+# Add a Bazarr webhook in Sonarr so it's notified on import/upgrade.
+- name: Bazarr | Check existing Sonarr notifications
+  ansible.builtin.uri:
+    url: "http://localhost:{{ _sonarr_port }}/api/v3/notification"
+    method: GET
+    headers:
+      X-Api-Key: "{{ sonarr_api_key }}"
+  register: _sonarr_notifications
+  vars:
+    _sonarr_port: "{{ (servarr_apps | selectattr('name', 'equalto', 'Sonarr') | list | first).port }}"
+
+- name: Bazarr | Add Sonarr → Bazarr webhook
+  ansible.builtin.uri:
+    url: "http://localhost:{{ _sonarr_port }}/api/v3/notification"
+    method: POST
+    headers:
+      X-Api-Key: "{{ sonarr_api_key }}"
+      Content-Type: application/json
+    body_format: json
+    body:
+      name: Bazarr
+      onGrab: false
+      onDownload: true
+      onUpgrade: true
+      onRename: true
+      onSeriesDelete: false
+      onEpisodeFileDelete: false
+      onEpisodeFileDeleteForUpgrade: false
+      onHealthIssue: false
+      onApplicationUpdate: false
+      implementationName: Webhook
+      implementation: Webhook
+      configContract: WebhookSettings
+      fields:
+        - name: url
+          value: "http://localhost:{{ bazarr_port }}/api/webhooks/sonarr"
+        - name: method
+          value: 1
+        - name: username
+          value: ""
+        - name: password
+          value: ""
+        - name: headers
+          value:
+            - key: x-api-key
+              value: "{{ bazarr_api_key | default('') }}"
+        - name: body
+          value: ""
+    status_code: [200, 201]
+  when: >-
+    bazarr_api_key is defined and
+    (_sonarr_notifications.json | selectattr('name', 'equalto', 'Bazarr') | list | length) == 0
+  vars:
+    _sonarr_port: "{{ (servarr_apps | selectattr('name', 'equalto', 'Sonarr') | list | first).port }}"
+
+- name: Bazarr | Check existing Radarr notifications
+  ansible.builtin.uri:
+    url: "http://localhost:{{ _radarr_port }}/api/v3/notification"
+    method: GET
+    headers:
+      X-Api-Key: "{{ radarr_api_key }}"
+  register: _radarr_notifications
+  vars:
+    _radarr_port: "{{ (servarr_apps | selectattr('name', 'equalto', 'Radarr') | list | first).port }}"
+
+- name: Bazarr | Add Radarr → Bazarr webhook
+  ansible.builtin.uri:
+    url: "http://localhost:{{ _radarr_port }}/api/v3/notification"
+    method: POST
+    headers:
+      X-Api-Key: "{{ radarr_api_key }}"
+      Content-Type: application/json
+    body_format: json
+    body:
+      name: Bazarr
+      onGrab: false
+      onDownload: true
+      onUpgrade: true
+      onRename: true
+      onMovieDelete: false
+      onMovieFileDelete: false
+      onMovieFileDeleteForUpgrade: false
+      onHealthIssue: false
+      onApplicationUpdate: false
+      implementationName: Webhook
+      implementation: Webhook
+      configContract: WebhookSettings
+      fields:
+        - name: url
+          value: "http://localhost:{{ bazarr_port }}/api/webhooks/radarr"
+        - name: method
+          value: 1
+        - name: username
+          value: ""
+        - name: password
+          value: ""
+        - name: headers
+          value:
+            - key: x-api-key
+              value: "{{ bazarr_api_key | default('') }}"
+        - name: body
+          value: ""
+    status_code: [200, 201]
+  when: >-
+    bazarr_api_key is defined and
+    (_radarr_notifications.json | selectattr('name', 'equalto', 'Bazarr') | list | length) == 0
+  vars:
+    _radarr_port: "{{ (servarr_apps | selectattr('name', 'equalto', 'Radarr') | list | first).port }}"

@@ -1,0 +1,15 @@
+---
+- name: Decluttarr config | Write env file with API keys
+  ansible.builtin.template:
+    src: decluttarr.env.j2
+    dest: "{{ decluttarr_config_dir }}/decluttarr.env"
+    owner: "{{ decluttarr_user }}"
+    group: "{{ decluttarr_user }}"
+    mode: '0640'
+  register: _decluttarr_env
+
+- name: Decluttarr config | Start / restart service
+  ansible.builtin.systemd:
+    name: decluttarr
+    state: "{{ 'restarted' if _decluttarr_env.changed else 'started' }}"
+    daemon_reload: true

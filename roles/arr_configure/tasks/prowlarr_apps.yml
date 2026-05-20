@@ -1,0 +1,109 @@
+---
+# Register each Servarr app in Prowlarr so indexers sync automatically.
+# Prowlarr uses different configContract per app type.
+
+- name: Prowlarr apps | Check existing applications
+  ansible.builtin.uri:
+    url: "http://localhost:{{ prowlarr_port }}/api/v1/applications"
+    method: GET
+    headers:
+      X-Api-Key: "{{ prowlarr_api_key }}"
+  register: _prowlarr_existing_apps
+  vars:
+    prowlarr_port: "{{ (servarr_apps | selectattr('name', 'equalto', 'Prowlarr') | list | first).port }}"
+
+- name: Prowlarr apps | Build existing app name list
+  ansible.builtin.set_fact:
+    _prowlarr_registered: "{{ _prowlarr_existing_apps.json | map(attribute='name') | list }}"
+
+- name: Prowlarr apps | Register Sonarr
+  ansible.builtin.uri:
+    url: "http://localhost:{{ _prowlarr_port }}/api/v1/applications"
+    method: POST
+    headers:
+      X-Api-Key: "{{ prowlarr_api_key }}"
+      Content-Type: application/json
+    body_format: json
+    body:
+      name: Sonarr
+      syncLevel: fullSync
+      implementationName: Sonarr
+      implementation: Sonarr
+      configContract: SonarrSettings
+      tags: []
+      fields:
+        - name: prowlarrUrl
+          value: "http://localhost:{{ _prowlarr_port }}"
+        - name: baseUrl
+          value: "http://localhost:{{ _sonarr_port }}"
+        - name: apiKey
+          value: "{{ sonarr_api_key }}"
+        - name: syncCategories
+          value: [5000, 5010, 5020, 5030, 5040, 5045, 5050, 5060, 5070, 5080]
+        - name: animeSyncCategories
+          value: [5070]
+    status_code: [200, 201]
+  when: "'Sonarr' not in _prowlarr_registered"
+  vars:
+    _prowlarr_port: "{{ (servarr_apps | selectattr('name', 'equalto', 'Prowlarr') | list | first).port }}"
+    _sonarr_port: "{{ (servarr_apps | selectattr('name', 'equalto', 'Sonarr') | list | first).port }}"
+
+- name: Prowlarr apps | Register Radarr
+  ansible.builtin.uri:
+    url: "http://localhost:{{ _prowlarr_port }}/api/v1/applications"
+    method: POST
+    headers:
+      X-Api-Key: "{{ prowlarr_api_key }}"
+      Content-Type: application/json
+    body_format: json
+    body:
+      name: Radarr
+      syncLevel: fullSync
+      implementationName: Radarr
+      implementation: Radarr
+      configContract: RadarrSettings
+      tags: []
+      fields:
+        - name: prowlarrUrl
+          value: "http://localhost:{{ _prowlarr_port }}"
+        - name: baseUrl
+          value: "http://localhost:{{ _radarr_port }}"
+        - name: apiKey
+          value: "{{ radarr_api_key }}"
+        - name: syncCategories
+          value: [2000, 2010, 2020, 2030, 2040, 2045, 2050, 2060, 2070, 2080]
+    status_code: [200, 201]
+  when: "'Radarr' not in _prowlarr_registered"
+  vars:
+    _prowlarr_port: "{{ (servarr_apps | selectattr('name', 'equalto', 'Prowlarr') | list | first).port }}"
+    _radarr_port: "{{ (servarr_apps | selectattr('name', 'equalto', 'Radarr') | list | first).port }}"
+
+- name: Prowlarr apps | Register Lidarr
+  ansible.builtin.uri:
+    url: "http://localhost:{{ _prowlarr_port }}/api/v1/applications"
+    method: POST
+    headers:
+      X-Api-Key: "{{ prowlarr_api_key }}"
+      Content-Type: application/json
+    body_format: json
+    body:
+      name: Lidarr
+      syncLevel: fullSync
+      implementationName: Lidarr
+      implementation: Lidarr
+      configContract: LidarrSettings
+      tags: []
+      fields:
+        - name: prowlarrUrl
+          value: "http://localhost:{{ _prowlarr_port }}"
+        - name: baseUrl
+          value: "http://localhost:{{ _lidarr_port }}"
+        - name: apiKey
+          value: "{{ lidarr_api_key }}"
+        - name: syncCategories
+          value: [3000, 3010, 3030, 3040, 3050, 3060]
+    status_code: [200, 201]
+  when: "'Lidarr' not in _prowlarr_registered"
+  vars:
+    _prowlarr_port: "{{ (servarr_apps | selectattr('name', 'equalto', 'Prowlarr') | list | first).port }}"
+    _lidarr_port: "{{ (servarr_apps | selectattr('name', 'equalto', 'Lidarr') | list | first).port }}"

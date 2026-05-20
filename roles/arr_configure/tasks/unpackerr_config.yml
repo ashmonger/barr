@@ -1,0 +1,15 @@
+---
+- name: Unpackerr config | Write config with API keys
+  ansible.builtin.template:
+    src: unpackerr.conf.j2
+    dest: "{{ unpackerr_config_dir }}/unpackerr.conf"
+    owner: "{{ unpackerr_user }}"
+    group: "{{ unpackerr_user }}"
+    mode: '0640'
+  register: _unpackerr_cfg
+
+- name: Unpackerr config | Start / restart service
+  ansible.builtin.systemd:
+    name: unpackerr
+    state: "{{ 'restarted' if _unpackerr_cfg.changed else 'started' }}"
+    daemon_reload: true

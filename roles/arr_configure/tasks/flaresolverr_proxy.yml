@@ -1,0 +1,34 @@
+---
+- name: FlareSolverr proxy | Check existing proxies in Prowlarr
+  ansible.builtin.uri:
+    url: "http://localhost:{{ _prowlarr_port }}/api/v1/indexerProxy"
+    method: GET
+    headers:
+      X-Api-Key: "{{ prowlarr_api_key }}"
+  register: _prowlarr_proxies
+  vars:
+    _prowlarr_port: "{{ (servarr_apps | selectattr('name', 'equalto', 'Prowlarr') | list | first).port }}"
+
+- name: FlareSolverr proxy | Register FlareSolverr in Prowlarr
+  ansible.builtin.uri:
+    url: "http://localhost:{{ _prowlarr_port }}/api/v1/indexerProxy"
+    method: POST
+    headers:
+      X-Api-Key: "{{ prowlarr_api_key }}"
+      Content-Type: application/json
+    body_format: json
+    body:
+      name: FlareSolverr
+      implementation: FlareSolverr
+      configContract: FlareSolverrSettings
+      tags: []
+      fields:
+        - name: host
+          value: "http://localhost:{{ flaresolverr_port }}"
+        - name: requestTimeout
+          value: 60
+    status_code: [200, 201]
+  when: >-
+    (_prowlarr_proxies.json | selectattr('implementation', 'equalto', 'FlareSolverr') | list | length) == 0
+  vars:
+    _prowlarr_port: "{{ (servarr_apps | selectattr('name', 'equalto', 'Prowlarr') | list | first).port }}"
