@@ -1,0 +1,22 @@
+---
+- name: Install .NET runtime system dependencies
+  ansible.builtin.apt:
+    name: "{{ _dotnet_deps[ansible_distribution_release] | default(_dotnet_deps['trixie']) }}"
+    state: present
+
+- name: Create shared media group
+  ansible.builtin.group:
+    name: "{{ arr_media_group }}"
+    system: false
+  when: arr_media_group is defined and arr_media_group | length > 0
+
+- name: Create media and download directories
+  ansible.builtin.file:
+    path: "{{ dir }}"
+    state: directory
+    group: "{{ arr_media_group | default('root') }}"
+    mode: '0775'
+  loop: "{{ arr_managed_dirs | default([]) }}"
+  loop_control:
+    loop_var: dir
+  when: arr_managed_dirs is defined
