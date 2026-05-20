@@ -41,4 +41,11 @@ jobs:
           /opt/alv/bin/pip install --quiet "ansible-lint==24.12.2"
 
       - name: Run ansible-lint
-        run: /opt/alv/bin/ansible-lint install.yml
+        run: /opt/alv/bin/ansible-lint install.yml 2>&1 | tee ansible-lint-output.txt; exit "${PIPESTATUS[0]}"
+
+      - name: Upload lint output
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ansible-lint-output
+          path: ansible-lint-output.txt
