@@ -1,0 +1,17 @@
+[Unit]
+Description=Homarr Dashboard
+After=network.target
+
+[Service]
+User={{ homarr_user }}
+Group={{ homarr_user }}
+Type=simple
+WorkingDirectory={{ homarr_install_dir }}
+ExecStart=/usr/bin/yarn start
+Environment=NODE_ENV=production
+Environment=PORT={{ homarr_port }}
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
