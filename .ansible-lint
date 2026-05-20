@@ -5,3 +5,11 @@ exclude_paths:
   - .vm/
   - .git/
   - .remember/
+
+skip_list:
+  # Dynamic fact key "{{ item.name | lower }}_api_key" is the only clean way
+  # to build per-app API key facts without a full architecture redesign.
+  - var-naming[no-jinja]
+  # The `app` loop variable is passed into the servarr role via vars: in the
+  # playbook — renaming it to servarr_app would be pure churn with no benefit.
+  - var-naming[no-role-prefix]

@@ -12,9 +12,9 @@ rules:
     allowed-values: ['true', 'false']
     check-keys: false
 
-  # One space before inline comments is fine (e.g. key: value  # comment).
+  # Allow inline comments directly after code (e.g. key: value  # comment).
   comments:
-    min-spaces-before-comment: 1
+    min-spaces-from-content: 1
 
   # Allow one space inside braces for Jinja2 expressions.
   braces:
