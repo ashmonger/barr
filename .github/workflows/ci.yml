@@ -38,5 +38,11 @@ jobs:
         # ansible-lint bundles ansible-core; no separate ansible install needed.
         run: pip install "ansible-lint==24.12.2"
 
+      - name: Debug environment
+        run: |
+          ansible-lint --version
+          ansible --version
+          python3 --version
+
       - name: Run ansible-lint
-        run: ansible-lint install.yml
+        run: ansible-lint -v install.yml
