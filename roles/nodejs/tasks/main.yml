@@ -21,11 +21,11 @@
 
 - name: Node.js | Add NodeSource apt repository
   ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main"
+    repo: "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main"
     state: present
     filename: nodesource
 
-- name: Node.js | Install nodejs and yarn
+- name: Node.js | Install nodejs
   ansible.builtin.apt:
     name:
       - nodejs
@@ -36,3 +36,8 @@
   ansible.builtin.command:
     cmd: npm install -g yarn
     creates: /usr/local/bin/yarn
+
+- name: Node.js | Install pnpm globally
+  ansible.builtin.command:
+    cmd: npm install -g pnpm
+    creates: /usr/local/bin/pnpm

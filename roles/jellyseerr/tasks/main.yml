@@ -54,9 +54,9 @@
     remote_src: true
   when: not jellyseerr_dist.stat.exists
 
-- name: Jellyseerr | Install npm dependencies
+- name: Jellyseerr | Install dependencies
   ansible.builtin.command:
-    cmd: npm install --legacy-peer-deps
+    cmd: pnpm install
     chdir: "{{ jellyseerr_install_dir }}"
   become: true
   become_user: "{{ jellyseerr_user }}"
@@ -64,7 +64,7 @@
 
 - name: Jellyseerr | Build application
   ansible.builtin.command:
-    cmd: npm run build
+    cmd: pnpm run build
     chdir: "{{ jellyseerr_install_dir }}"
   become: true
   become_user: "{{ jellyseerr_user }}"
