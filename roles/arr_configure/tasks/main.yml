@@ -26,6 +26,9 @@
 - name: Configure | Read Servarr API keys
   ansible.builtin.include_tasks: read_api_keys.yml
 
+- name: Configure | Set authentication on all apps
+  ansible.builtin.include_tasks: auth.yml
+
 - name: Configure | Wire Prowlarr applications
   ansible.builtin.include_tasks: prowlarr_apps.yml
 

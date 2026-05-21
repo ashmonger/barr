@@ -35,6 +35,7 @@ servarr_apps:
     data_dir: /var/lib/prowlarr
     github_repo: Prowlarr/Prowlarr
     asset_pattern: 'linux(-core)?-x64\.tar\.gz'
+    api_version: v1
 
   - name: Sonarr
     user: sonarr
@@ -85,6 +86,12 @@ bazarr_install_dir: /opt/bazarr
 bazarr_data_dir: /var/lib/bazarr
 bazarr_github_repo: morpheus65535/bazarr
 bazarr_asset_pattern: 'bazarr\.zip'
+
+# ── Authentication ─────────────────────────────────────────────────────────────
+# Shared credentials for all *arr app and Bazarr web UIs.
+# Override in host_vars or an Ansible Vault file before running in production.
+arr_auth_username: admin
+arr_auth_password: changeme
 
 # ── qBittorrent ───────────────────────────────────────────────────────────────
 qbittorrent_system_user: qbittorrent

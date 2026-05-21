@@ -1,0 +1,63 @@
+---
+# Enable form-based authentication on all Servarr apps and Bazarr.
+# API key access (X-Api-Key) keeps working after auth is enabled.
+# Tasks are skipped idempotently when auth is already configured.
+
+- name: Auth | Get host config from each Servarr app
+  ansible.builtin.uri:
+    url: "http://localhost:{{ item.port }}/api/{{ item.api_version | default('v3') }}/config/host"
+    method: GET
+    headers:
+      X-Api-Key: "{{ lookup('vars', item.name | lower + '_api_key') }}"
+  register: _host_configs
+  loop: "{{ servarr_apps }}"
+  loop_control:
+    loop_var: item
+    label: "{{ item.name }}"
+
+- name: Auth | Enable forms auth on each Servarr app
+  ansible.builtin.uri:
+    url: "http://localhost:{{ item.0.port }}/api/{{ item.0.api_version | default('v3') }}/config/host"
+    method: PUT
+    headers:
+      X-Api-Key: "{{ lookup('vars', item.0.name | lower + '_api_key') }}"
+      Content-Type: application/json
+    body_format: json
+    body: >-
+      {{ item.1.json | combine({
+           'authenticationMethod': 'forms',
+           'username': arr_auth_username,
+           'password': arr_auth_password,
+           'passwordConfirmation': arr_auth_password
+         }) }}
+    status_code: [200, 202]
+  when: (item.1.json.authenticationMethod | default('none')) == 'none'
+  loop: "{{ servarr_apps | zip(_host_configs.results) | list }}"
+  loop_control:
+    loop_var: item
+    label: "{{ item.0.name }}"
+
+- name: Auth | Slurp Bazarr config.yaml
+  ansible.builtin.slurp:
+    src: "{{ bazarr_data_dir }}/config/config.yaml"
+  register: _bazarr_auth_cfg
+  when: bazarr_api_key is defined
+
+- name: Auth | Enable forms auth in Bazarr
+  ansible.builtin.copy:
+    content: >-
+      {{ (_bazarr_auth_cfg.content | b64decode | from_yaml) | combine({
+           'auth': (_bazarr_auth_cfg.content | b64decode | from_yaml).auth | combine({
+             'type': 'forms',
+             'username': arr_auth_username,
+             'password': arr_auth_password
+           })
+         }, recursive=true) | to_nice_yaml(indent=2) }}
+    dest: "{{ bazarr_data_dir }}/config/config.yaml"
+    owner: "{{ bazarr_user }}"
+    group: "{{ bazarr_group }}"
+    mode: '0640'
+  when: >-
+    bazarr_api_key is defined and
+    (_bazarr_auth_cfg.content | b64decode | from_yaml).auth.type is none
+  notify: Bazarr | Restart
