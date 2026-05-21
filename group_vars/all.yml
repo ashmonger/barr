@@ -110,7 +110,6 @@ recyclarr_install_dir: /opt/recyclarr
 recyclarr_config_dir: /etc/recyclarr
 
 
-
 # ── Decluttarr ────────────────────────────────────────────────────────────────
 decluttarr_user: decluttarr
 decluttarr_install_dir: /opt/decluttarr
@@ -194,6 +193,4 @@ healthchecks_services:
 
   - name: decluttarr
     systemd_unit: decluttarr
-    ping_url: ""
-
     ping_url: ""
