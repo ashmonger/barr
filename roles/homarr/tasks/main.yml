@@ -1,4 +1,12 @@
 ---
+- name: Homarr | Install build dependencies
+  ansible.builtin.apt:
+    name:
+      - build-essential
+      - python3
+      - libsqlite3-dev
+    state: present
+
 - name: Homarr | Create system group
   ansible.builtin.group:
     name: "{{ homarr_user }}"
@@ -56,7 +64,7 @@
 
 - name: Homarr | Install dependencies
   ansible.builtin.command:
-    cmd: yarn install --frozen-lockfile
+    cmd: yarn install --immutable
     chdir: "{{ homarr_install_dir }}"
   become: true
   become_user: "{{ homarr_user }}"
