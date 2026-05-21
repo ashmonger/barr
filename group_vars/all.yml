@@ -107,11 +107,6 @@ recyclarr_install_dir: /opt/recyclarr
 recyclarr_config_dir: /etc/recyclarr
 
 
-# ── Homarr ────────────────────────────────────────────────────────────────────
-homarr_user: homarr
-homarr_install_dir: /opt/homarr
-homarr_data_dir: /var/lib/homarr
-homarr_port: 7575
 
 # ── Decluttarr ────────────────────────────────────────────────────────────────
 decluttarr_user: decluttarr
@@ -135,8 +130,6 @@ caddy_domain: "change.me"
 caddy_tls: internal
 
 caddy_routes:
-  - host: "{{ caddy_domain }}"
-    port: "{{ homarr_port }}"
 
   - host: "prowlarr.{{ caddy_domain }}"
     port: "{{ (servarr_apps | selectattr('name', 'equalto', 'Prowlarr') | list | first).port }}"
@@ -200,6 +193,4 @@ healthchecks_services:
     systemd_unit: decluttarr
     ping_url: ""
 
-  - name: homarr
-    systemd_unit: homarr
     ping_url: ""

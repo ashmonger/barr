@@ -14,10 +14,6 @@
       ansible.builtin.include_role:
         name: common
 
-    - name: Install Node.js
-      ansible.builtin.include_role:
-        name: nodejs
-
     - name: Install Servarr apps
       ansible.builtin.include_role:
         name: servarr
@@ -48,10 +44,6 @@
     - name: Install Decluttarr
       ansible.builtin.include_role:
         name: decluttarr
-
-    - name: Install Homarr
-      ansible.builtin.include_role:
-        name: homarr
 
     - name: Install Caddy
       ansible.builtin.include_role:
