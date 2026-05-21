@@ -6,13 +6,13 @@
 
 - name: Bazarr | Wait for config.ini to be created
   ansible.builtin.wait_for:
-    path: "{{ bazarr_data_dir }}/config.ini"
+    path: "{{ bazarr_data_dir }}/config/config.ini"
     state: present
     timeout: 60
 
 - name: Bazarr | Configure Sonarr connection in config.ini
   ansible.builtin.blockinfile:
-    path: "{{ bazarr_data_dir }}/config.ini"
+    path: "{{ bazarr_data_dir }}/config/config.ini"
     marker: "# {mark} ANSIBLE MANAGED BLOCK: sonarr"
     block: |
       [sonarr]
@@ -29,7 +29,7 @@
 
 - name: Bazarr | Configure Radarr connection in config.ini
   ansible.builtin.blockinfile:
-    path: "{{ bazarr_data_dir }}/config.ini"
+    path: "{{ bazarr_data_dir }}/config/config.ini"
     marker: "# {mark} ANSIBLE MANAGED BLOCK: radarr"
     block: |
       [radarr]
