@@ -107,7 +107,7 @@
     owner: root
     group: root
     mode: '0644'
-  notify: systemd daemon-reload
+  notify: Systemd | Daemon reload
 
 - name: Bazarr | Enable and start service
   ansible.builtin.systemd:

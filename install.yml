@@ -49,10 +49,6 @@
       ansible.builtin.include_role:
         name: decluttarr
 
-    - name: Install Jellyseerr
-      ansible.builtin.include_role:
-        name: jellyseerr
-
     - name: Install Homarr
       ansible.builtin.include_role:
         name: homarr

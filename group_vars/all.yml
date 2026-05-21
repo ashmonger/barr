@@ -106,11 +106,6 @@ recyclarr_user: recyclarr
 recyclarr_install_dir: /opt/recyclarr
 recyclarr_config_dir: /etc/recyclarr
 
-# ── Jellyseerr ────────────────────────────────────────────────────────────────
-jellyseerr_user: jellyseerr
-jellyseerr_install_dir: /opt/jellyseerr
-jellyseerr_data_dir: /var/lib/jellyseerr
-jellyseerr_port: 5055
 
 # ── Homarr ────────────────────────────────────────────────────────────────────
 homarr_user: homarr
@@ -142,8 +137,7 @@ caddy_tls: internal
 caddy_routes:
   - host: "{{ caddy_domain }}"
     port: "{{ homarr_port }}"
-  - host: "requests.{{ caddy_domain }}"
-    port: "{{ jellyseerr_port }}"
+
   - host: "prowlarr.{{ caddy_domain }}"
     port: "{{ (servarr_apps | selectattr('name', 'equalto', 'Prowlarr') | list | first).port }}"
   - host: "sonarr.{{ caddy_domain }}"
@@ -204,10 +198,6 @@ healthchecks_services:
 
   - name: decluttarr
     systemd_unit: decluttarr
-    ping_url: ""
-
-  - name: jellyseerr
-    systemd_unit: jellyseerr
     ping_url: ""
 
   - name: homarr

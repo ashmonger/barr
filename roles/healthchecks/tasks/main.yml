@@ -25,7 +25,7 @@
   loop: "{{ healthchecks_services | selectattr('ping_url', 'ne', '') | list }}"
   loop_control:
     loop_var: check
-  notify: systemd daemon-reload
+  notify: Systemd | Daemon reload
 
 - name: Healthchecks | Install systemd timer units
   ansible.builtin.template:
@@ -37,7 +37,7 @@
   loop: "{{ healthchecks_services | selectattr('ping_url', 'ne', '') | list }}"
   loop_control:
     loop_var: check
-  notify: systemd daemon-reload
+  notify: Systemd | Daemon reload
 
 - name: Healthchecks | Enable and start timers
   ansible.builtin.systemd:
