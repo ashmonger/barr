@@ -15,7 +15,7 @@
   ansible.builtin.set_fact:
     "{{ item.item.name | lower }}_api_key": >-
       {{ item.content | b64decode | string
-         | regex_search('<ApiKey>([^<]+)</ApiKey>', '\\1')
+         | regex_findall('<ApiKey>([^<]+)</ApiKey>')
          | first }}
   loop: "{{ _cfg_raw.results }}"
   loop_control:
@@ -32,6 +32,6 @@
   ansible.builtin.set_fact:
     bazarr_api_key: >-
       {{ _bazarr_cfg_raw.content | b64decode | string
-         | regex_search('(?m)^apikey\s*=\s*(.+)$', '\\1')
+         | regex_findall('(?m)^apikey\s*=\s*(.+)$')
          | first | trim }}
   when: not _bazarr_cfg_raw.failed | default(false)
