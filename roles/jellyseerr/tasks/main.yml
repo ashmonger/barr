@@ -28,7 +28,7 @@
 
 - name: Jellyseerr | Get latest release from GitHub
   ansible.builtin.uri:
-    url: "https://api.github.com/repos/fallenbagel/jellyseerr/releases/latest"
+    url: "https://api.github.com/repos/seerr-team/seerr/releases/latest"
     headers:
       Accept: application/vnd.github.v3+json
       Authorization: "{{ 'Bearer ' + github_token if github_token is defined else omit }}"
@@ -38,7 +38,7 @@
 
 - name: Jellyseerr | Download source archive
   ansible.builtin.get_url:
-    url: "{{ jellyseerr_release.json.tarball_url }}"
+    url: "https://github.com/seerr-team/seerr/archive/refs/tags/{{ jellyseerr_release.json.tag_name }}.tar.gz"
     dest: /tmp/jellyseerr.tar.gz
     mode: '0644'
   when: not jellyseerr_dist.stat.exists
