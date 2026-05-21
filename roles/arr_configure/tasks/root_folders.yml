@@ -1,20 +1,21 @@
 ---
-# Register each app's media directory as a root folder via the API.
-# Only apps with media_dir defined (Sonarr, Radarr, Lidarr) are processed.
+# Register each app's media directory as a root folder.
+# Sonarr and Radarr accept just the path; Lidarr also requires
+# a name and default quality/metadata profile IDs.
 
-- name: Root folders | Check existing root folders in each app
+- name: Root folders | Check existing root folders in Sonarr and Radarr
   ansible.builtin.uri:
     url: "http://localhost:{{ item.port }}/api/{{ item.api_version | default('v3') }}/rootfolder"
     method: GET
     headers:
       X-Api-Key: "{{ lookup('vars', item.name | lower + '_api_key') }}"
   register: _existing_roots
-  loop: "{{ servarr_apps | selectattr('media_dir', 'defined') | list }}"
+  loop: "{{ servarr_apps | selectattr('media_dir', 'defined') | rejectattr('name', 'equalto', 'Lidarr') | list }}"
   loop_control:
     loop_var: item
     label: "{{ item.name }}"
 
-- name: Root folders | Add root folder to each app
+- name: Root folders | Add root folder to Sonarr and Radarr
   ansible.builtin.uri:
     url: "http://localhost:{{ item.0.port }}/api/{{ item.0.api_version | default('v3') }}/rootfolder"
     method: POST
@@ -27,7 +28,60 @@
     status_code: [200, 201]
   when: >-
     (item.1.json | selectattr('path', 'equalto', item.0.media_dir) | list | length) == 0
-  loop: "{{ servarr_apps | selectattr('media_dir', 'defined') | list | zip(_existing_roots.results) | list }}"
+  loop: >-
+    {{ servarr_apps | selectattr('media_dir', 'defined') | rejectattr('name', 'equalto', 'Lidarr')
+       | list | zip(_existing_roots.results) | list }}
   loop_control:
     loop_var: item
     label: "{{ item.0.name }}"
+
+# Lidarr requires name + default quality/metadata profile IDs on root folders.
+- name: Root folders | Get Lidarr quality profiles
+  ansible.builtin.uri:
+    url: "http://localhost:{{ _lidarr_port }}/api/v1/qualityprofile"
+    method: GET
+    headers:
+      X-Api-Key: "{{ lidarr_api_key }}"
+  register: _lidarr_quality_profiles
+  vars:
+    _lidarr_port: "{{ (servarr_apps | selectattr('name', 'equalto', 'Lidarr') | list | first).port }}"
+
+- name: Root folders | Get Lidarr metadata profiles
+  ansible.builtin.uri:
+    url: "http://localhost:{{ _lidarr_port }}/api/v1/metadataprofile"
+    method: GET
+    headers:
+      X-Api-Key: "{{ lidarr_api_key }}"
+  register: _lidarr_metadata_profiles
+  vars:
+    _lidarr_port: "{{ (servarr_apps | selectattr('name', 'equalto', 'Lidarr') | list | first).port }}"
+
+- name: Root folders | Check existing Lidarr root folders
+  ansible.builtin.uri:
+    url: "http://localhost:{{ _lidarr_port }}/api/v1/rootfolder"
+    method: GET
+    headers:
+      X-Api-Key: "{{ lidarr_api_key }}"
+  register: _lidarr_existing_roots
+  vars:
+    _lidarr_port: "{{ (servarr_apps | selectattr('name', 'equalto', 'Lidarr') | list | first).port }}"
+
+- name: Root folders | Add root folder to Lidarr
+  ansible.builtin.uri:
+    url: "http://localhost:{{ _lidarr_port }}/api/v1/rootfolder"
+    method: POST
+    headers:
+      X-Api-Key: "{{ lidarr_api_key }}"
+      Content-Type: application/json
+    body_format: json
+    body:
+      path: "{{ _lidarr_media }}"
+      name: Music
+      defaultQualityProfileId: "{{ _lidarr_quality_profiles.json | map(attribute='id') | list | first }}"
+      defaultMetadataProfileId: "{{ _lidarr_metadata_profiles.json | map(attribute='id') | list | first }}"
+    status_code: [200, 201]
+  when: >-
+    (_lidarr_existing_roots.json | selectattr('path', 'equalto', _lidarr_media) | list | length) == 0
+  vars:
+    _lidarr_port: "{{ (servarr_apps | selectattr('name', 'equalto', 'Lidarr') | list | first).port }}"
+    _lidarr_media: "{{ (servarr_apps | selectattr('name', 'equalto', 'Lidarr') | list | first).media_dir }}"
