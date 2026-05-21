@@ -44,6 +44,7 @@ servarr_apps:
     data_dir: /var/lib/sonarr
     github_repo: Sonarr/Sonarr
     asset_pattern: 'linux(-core)?-x64\.tar\.gz'
+    api_version: v3
     # Root folder where Sonarr manages TV shows
     media_dir: "{{ arr_media_tv }}"
     qbt_category: tv-sonarr
@@ -57,6 +58,7 @@ servarr_apps:
     data_dir: /var/lib/radarr
     github_repo: Radarr/Radarr
     asset_pattern: 'linux(-core)?-x64\.tar\.gz'
+    api_version: v3
     media_dir: "{{ arr_media_movies }}"
     qbt_category: radarr
     qbt_category_field: movieCategory
@@ -69,6 +71,7 @@ servarr_apps:
     data_dir: /var/lib/lidarr
     github_repo: Lidarr/Lidarr
     asset_pattern: 'linux(-core)?-x64\.tar\.gz'
+    api_version: v1
     media_dir: "{{ arr_media_music }}"
     qbt_category: lidarr
     qbt_category_field: musicCategory

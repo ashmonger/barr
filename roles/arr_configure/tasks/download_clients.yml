@@ -6,19 +6,19 @@
 
 - name: Download clients | Check existing clients in each app
   ansible.builtin.uri:
-    url: "http://localhost:{{ item.port }}/api/v3/downloadclient"
+    url: "http://localhost:{{ item.port }}/api/{{ item.api_version | default('v3') }}/downloadclient"
     method: GET
     headers:
       X-Api-Key: "{{ lookup('vars', item.name | lower + '_api_key') }}"
   register: _existing_clients
-  loop: "{{ servarr_apps }}"
+  loop: "{{ servarr_apps | selectattr('qbt_category', 'defined') | list }}"
   loop_control:
     loop_var: item
     label: "{{ item.name }}"
 
 - name: Download clients | Add qBittorrent to each app
   ansible.builtin.uri:
-    url: "http://localhost:{{ item.0.port }}/api/v3/downloadclient"
+    url: "http://localhost:{{ item.0.port }}/api/{{ item.0.api_version | default('v3') }}/downloadclient"
     method: POST
     headers:
       X-Api-Key: "{{ lookup('vars', item.0.name | lower + '_api_key') }}"
@@ -58,7 +58,7 @@
     status_code: [200, 201]
   when: >-
     (item.1.json | selectattr('implementation', 'equalto', 'QBittorrent') | list | length) == 0
-  loop: "{{ servarr_apps | zip(_existing_clients.results) | list }}"
+  loop: "{{ servarr_apps | selectattr('qbt_category', 'defined') | list | zip(_existing_clients.results) | list }}"
   loop_control:
     loop_var: item
     label: "{{ item.0.name }}"
