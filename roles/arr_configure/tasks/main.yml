@@ -35,6 +35,9 @@
 - name: Configure | Configure download clients
   ansible.builtin.include_tasks: download_clients.yml
 
+- name: Configure | Register root folders
+  ansible.builtin.include_tasks: root_folders.yml
+
 - name: Configure | Configure Bazarr connections
   ansible.builtin.include_tasks: bazarr_connections.yml
 

@@ -1,0 +1,33 @@
+---
+# Register each app's media directory as a root folder via the API.
+# Only apps with media_dir defined (Sonarr, Radarr, Lidarr) are processed.
+
+- name: Root folders | Check existing root folders in each app
+  ansible.builtin.uri:
+    url: "http://localhost:{{ item.port }}/api/{{ item.api_version | default('v3') }}/rootfolder"
+    method: GET
+    headers:
+      X-Api-Key: "{{ lookup('vars', item.name | lower + '_api_key') }}"
+  register: _existing_roots
+  loop: "{{ servarr_apps | selectattr('media_dir', 'defined') | list }}"
+  loop_control:
+    loop_var: item
+    label: "{{ item.name }}"
+
+- name: Root folders | Add root folder to each app
+  ansible.builtin.uri:
+    url: "http://localhost:{{ item.0.port }}/api/{{ item.0.api_version | default('v3') }}/rootfolder"
+    method: POST
+    headers:
+      X-Api-Key: "{{ lookup('vars', item.0.name | lower + '_api_key') }}"
+      Content-Type: application/json
+    body_format: json
+    body:
+      path: "{{ item.0.media_dir }}"
+    status_code: [200, 201]
+  when: >-
+    (item.1.json | selectattr('path', 'equalto', item.0.media_dir) | list | length) == 0
+  loop: "{{ servarr_apps | selectattr('media_dir', 'defined') | list | zip(_existing_roots.results) | list }}"
+  loop_control:
+    loop_var: item
+    label: "{{ item.0.name }}"
