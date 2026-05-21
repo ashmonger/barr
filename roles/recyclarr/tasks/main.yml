@@ -44,7 +44,7 @@
   ansible.builtin.set_fact:
     _recyclarr_url: >-
       {{ recyclarr_release.json.assets
-         | selectattr('name', 'search', 'linux-x64\.tar\.gz')
+         | selectattr('name', 'search', 'linux-x64\.tar\.xz')
          | map(attribute='browser_download_url')
          | first }}
   when: not recyclarr_binary.stat.exists
@@ -52,13 +52,13 @@
 - name: Recyclarr | Download archive
   ansible.builtin.get_url:
     url: "{{ _recyclarr_url }}"
-    dest: /tmp/recyclarr.tar.gz
+    dest: /tmp/recyclarr.tar.xz
     mode: '0644'
   when: not recyclarr_binary.stat.exists
 
 - name: Recyclarr | Extract binary
   ansible.builtin.unarchive:
-    src: /tmp/recyclarr.tar.gz
+    src: /tmp/recyclarr.tar.xz
     dest: "{{ recyclarr_install_dir }}"
     owner: "{{ recyclarr_user }}"
     group: "{{ recyclarr_user }}"
@@ -77,7 +77,7 @@
     - recyclarr.timer.j2
   loop_control:
     loop_var: tmpl
-  notify: systemd daemon-reload
+  notify: Systemd | Daemon reload
 
 - name: Recyclarr | Enable timer (started by arr_configure after config is written)
   ansible.builtin.systemd:

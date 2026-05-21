@@ -51,24 +51,31 @@
   ansible.builtin.set_fact:
     _unpackerr_url: >-
       {{ unpackerr_release.json.assets
-         | selectattr('name', 'search', 'linux.*amd64\.tar\.gz')
+         | selectattr('name', 'search', 'amd64\.linux\.gz')
          | map(attribute='browser_download_url')
          | first }}
   when: not unpackerr_binary.stat.exists
 
-- name: Unpackerr | Download archive
+- name: Unpackerr | Download binary
   ansible.builtin.get_url:
     url: "{{ _unpackerr_url }}"
-    dest: /tmp/unpackerr.tar.gz
+    dest: /tmp/unpackerr.gz
     mode: '0644'
   when: not unpackerr_binary.stat.exists
 
-- name: Unpackerr | Extract binary
-  ansible.builtin.unarchive:
-    src: /tmp/unpackerr.tar.gz
-    dest: "{{ unpackerr_install_dir }}"
+- name: Unpackerr | Decompress binary
+  ansible.builtin.command:
+    cmd: gunzip /tmp/unpackerr.gz
+    creates: /tmp/unpackerr
+  when: not unpackerr_binary.stat.exists
+
+- name: Unpackerr | Install binary
+  ansible.builtin.copy:
+    src: /tmp/unpackerr
+    dest: "{{ unpackerr_install_dir }}/unpackerr"
     owner: "{{ unpackerr_user }}"
     group: "{{ unpackerr_user }}"
+    mode: '0750'
     remote_src: true
   when: not unpackerr_binary.stat.exists
 
@@ -79,7 +86,7 @@
     owner: root
     group: root
     mode: '0644'
-  notify: systemd daemon-reload
+  notify: Systemd | Daemon reload
 
 - name: Unpackerr | Enable service (started by arr_configure after config is written)
   ansible.builtin.systemd:
