@@ -56,7 +56,7 @@
 
 - name: Jellyseerr | Install npm dependencies
   ansible.builtin.command:
-    cmd: npm install --production=false
+    cmd: npm install --legacy-peer-deps
     chdir: "{{ jellyseerr_install_dir }}"
   become: true
   become_user: "{{ jellyseerr_user }}"
