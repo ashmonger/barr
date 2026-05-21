@@ -71,9 +71,9 @@
     cmd: python3 -m venv {{ decluttarr_install_dir }}/venv
     creates: "{{ decluttarr_install_dir }}/venv/bin/activate"
 
-- name: Decluttarr | Install pip requirements
+- name: Decluttarr | Install dependencies
   ansible.builtin.pip:
-    requirements: "{{ decluttarr_install_dir }}/requirements.txt"
+    name: "{{ decluttarr_install_dir }}"
     virtualenv: "{{ decluttarr_install_dir }}/venv"
     state: present
 
