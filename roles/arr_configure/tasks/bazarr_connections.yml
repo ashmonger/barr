@@ -1,44 +1,38 @@
 ---
 # Configure Bazarr to pull metadata from Sonarr and Radarr.
-# Bazarr stores its settings in config.ini; we write the [sonarr] and [radarr]
-# sections directly, then restart Bazarr to pick them up.
+# Bazarr v1.x stores settings in config/config.yaml; we read-modify-write
+# the sonarr/radarr sections and the general use_sonarr/use_radarr flags,
+# then restart Bazarr to pick them up.
 # The Sonarr/Radarr webhook notifications to Bazarr are added via their APIs.
 
-- name: Bazarr | Wait for config.ini to be created
-  ansible.builtin.wait_for:
-    path: "{{ bazarr_data_dir }}/config/config.ini"
-    state: present
-    timeout: 60
+- name: Bazarr | Slurp config.yaml
+  ansible.builtin.slurp:
+    src: "{{ bazarr_data_dir }}/config/config.yaml"
+  register: _bazarr_cfg
 
-- name: Bazarr | Configure Sonarr connection in config.ini
-  ansible.builtin.blockinfile:
-    path: "{{ bazarr_data_dir }}/config/config.ini"
-    marker: "# {mark} ANSIBLE MANAGED BLOCK: sonarr"
-    block: |
-      [sonarr]
-      enabled = True
-      ip = localhost
-      port = {{ (servarr_apps | selectattr('name', 'equalto', 'Sonarr') | list | first).port }}
-      base_url = /
-      ssl = False
-      apikey = {{ sonarr_api_key }}
-    owner: "{{ bazarr_user }}"
-    group: "{{ bazarr_group }}"
-    mode: '0640'
-  notify: Bazarr | Restart
-
-- name: Bazarr | Configure Radarr connection in config.ini
-  ansible.builtin.blockinfile:
-    path: "{{ bazarr_data_dir }}/config/config.ini"
-    marker: "# {mark} ANSIBLE MANAGED BLOCK: radarr"
-    block: |
-      [radarr]
-      enabled = True
-      ip = localhost
-      port = {{ (servarr_apps | selectattr('name', 'equalto', 'Radarr') | list | first).port }}
-      base_url = /
-      ssl = False
-      apikey = {{ radarr_api_key }}
+- name: Bazarr | Write Sonarr and Radarr settings to config.yaml
+  vars:
+    _cfg: "{{ _bazarr_cfg.content | b64decode | from_yaml }}"
+  ansible.builtin.copy:
+    content: >-
+      {{ _cfg | combine({
+           'general': _cfg.general | combine({'use_sonarr': true, 'use_radarr': true}),
+           'sonarr': _cfg.sonarr | combine({
+             'ip': 'localhost',
+             'port': (servarr_apps | selectattr('name', 'equalto', 'Sonarr') | list | first).port,
+             'apikey': sonarr_api_key,
+             'ssl': false,
+             'base_url': '/'
+           }),
+           'radarr': _cfg.radarr | combine({
+             'ip': 'localhost',
+             'port': (servarr_apps | selectattr('name', 'equalto', 'Radarr') | list | first).port,
+             'apikey': radarr_api_key,
+             'ssl': false,
+             'base_url': '/'
+           })
+         }, recursive=true) | to_nice_yaml(indent=2) }}
+    dest: "{{ bazarr_data_dir }}/config/config.yaml"
     owner: "{{ bazarr_user }}"
     group: "{{ bazarr_group }}"
     mode: '0640'

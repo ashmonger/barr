@@ -22,17 +22,17 @@
     loop_var: item
     label: "{{ item.item.name }}"
 
-- name: Read API keys | Wait for Bazarr config.ini
+- name: Read API keys | Wait for Bazarr config.yaml
   ansible.builtin.wait_for:
-    path: "{{ bazarr_data_dir }}/config/config.ini"
+    path: "{{ bazarr_data_dir }}/config/config.yaml"
     state: present
     timeout: 60
   ignore_errors: true
   register: _bazarr_cfg_wait
 
-- name: Read API keys | Slurp Bazarr config.ini
+- name: Read API keys | Slurp Bazarr config.yaml
   ansible.builtin.slurp:
-    src: "{{ bazarr_data_dir }}/config/config.ini"
+    src: "{{ bazarr_data_dir }}/config/config.yaml"
   register: _bazarr_cfg_raw
   when: not (_bazarr_cfg_wait.failed | default(false))
   ignore_errors: true
@@ -40,7 +40,5 @@
 - name: Read API keys | Extract Bazarr API key
   ansible.builtin.set_fact:
     bazarr_api_key: >-
-      {{ _bazarr_cfg_raw.content | b64decode | string
-         | regex_findall('(?m)^apikey\s*=\s*(.+)$')
-         | first | trim }}
+      {{ (_bazarr_cfg_raw.content | b64decode | from_yaml).auth.apikey }}
   when: not (_bazarr_cfg_wait.failed | default(false)) and not (_bazarr_cfg_raw.failed | default(false))
