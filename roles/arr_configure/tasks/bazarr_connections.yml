@@ -4,6 +4,12 @@
 # sections directly, then restart Bazarr to pick them up.
 # The Sonarr/Radarr webhook notifications to Bazarr are added via their APIs.
 
+- name: Bazarr | Wait for config.ini to be created
+  ansible.builtin.wait_for:
+    path: "{{ bazarr_data_dir }}/config.ini"
+    state: present
+    timeout: 60
+
 - name: Bazarr | Configure Sonarr connection in config.ini
   ansible.builtin.blockinfile:
     path: "{{ bazarr_data_dir }}/config.ini"
