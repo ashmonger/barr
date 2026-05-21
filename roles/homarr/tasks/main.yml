@@ -38,7 +38,7 @@
 
 - name: Homarr | Download source archive
   ansible.builtin.get_url:
-    url: "{{ homarr_release.json.tarball_url }}"
+    url: "https://github.com/ajnart/homarr/archive/refs/tags/{{ homarr_release.json.tag_name }}.tar.gz"
     dest: /tmp/homarr.tar.gz
     mode: '0644'
   when: not homarr_build.stat.exists

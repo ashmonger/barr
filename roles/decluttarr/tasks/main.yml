@@ -50,7 +50,7 @@
 
 - name: Decluttarr | Download source archive
   ansible.builtin.get_url:
-    url: "{{ decluttarr_release.json[0].tarball_url }}"
+    url: "https://github.com/ManiMatter/decluttarr/archive/refs/tags/{{ decluttarr_release.json[0].name }}.tar.gz"
     dest: /tmp/decluttarr.tar.gz
     mode: '0644'
   when: not decluttarr_app.stat.exists
