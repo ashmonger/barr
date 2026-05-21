@@ -38,9 +38,9 @@
     path: "{{ decluttarr_install_dir }}/main.py"
   register: decluttarr_app
 
-- name: Decluttarr | Get latest release from GitHub
+- name: Decluttarr | Get latest tag from GitHub
   ansible.builtin.uri:
-    url: "https://api.github.com/repos/ManiMatter/decluttarr/releases/latest"
+    url: "https://api.github.com/repos/ManiMatter/decluttarr/tags?per_page=1"
     headers:
       Accept: application/vnd.github.v3+json
       Authorization: "{{ 'Bearer ' + github_token if github_token is defined else omit }}"
@@ -50,7 +50,7 @@
 
 - name: Decluttarr | Download source archive
   ansible.builtin.get_url:
-    url: "{{ decluttarr_release.json.tarball_url }}"
+    url: "{{ decluttarr_release.json[0].tarball_url }}"
     dest: /tmp/decluttarr.tar.gz
     mode: '0644'
   when: not decluttarr_app.stat.exists
@@ -91,7 +91,7 @@
     owner: root
     group: root
     mode: '0644'
-  notify: systemd daemon-reload
+  notify: Systemd | Daemon reload
 
 - name: Decluttarr | Enable service (started by arr_configure after env is written)
   ansible.builtin.systemd:
