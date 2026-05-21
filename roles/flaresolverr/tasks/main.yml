@@ -45,7 +45,7 @@
   ansible.builtin.set_fact:
     _flaresolverr_url: >-
       {{ flaresolverr_release.json.assets
-         | selectattr('name', 'search', 'linux-x64\.tar\.gz')
+         | selectattr('name', 'search', 'linux_x64\.tar\.gz')
          | map(attribute='browser_download_url')
          | first }}
   when: not flaresolverr_binary.stat.exists
@@ -75,7 +75,7 @@
     owner: root
     group: root
     mode: '0644'
-  notify: systemd daemon-reload
+  notify: Systemd | Daemon reload
 
 - name: FlareSolverr | Enable and start service
   ansible.builtin.systemd:
