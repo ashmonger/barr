@@ -2,16 +2,7 @@
 # .NET self-contained runtime requirements, keyed by ansible_distribution_release
 _dotnet_deps:
   trixie:
-    - libicu74
-    - libssl3
-    - libgssapi-krb5-2
-    - zlib1g
-    - libsqlite3-0
-    - ca-certificates
-    - curl
-    - mediainfo
-  bookworm:
-    - libicu72
+    - libicu76
     - libssl3
     - libgssapi-krb5-2
     - zlib1g
