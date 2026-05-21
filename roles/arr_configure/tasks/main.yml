@@ -3,9 +3,9 @@
   ansible.builtin.uri:
     url: "http://localhost:{{ item.port }}/api/v1/system/status"
     method: GET
-    status_code: 200
+    status_code: [200, 401]
   register: _api_check
-  until: _api_check.status == 200
+  until: _api_check.status in [200, 401]
   retries: 30
   delay: 10
   loop: "{{ servarr_apps }}"
@@ -17,9 +17,9 @@
   ansible.builtin.uri:
     url: "http://localhost:{{ bazarr_port }}/api/system/status"
     method: GET
-    status_code: 200
+    status_code: [200, 401]
   register: _bazarr_check
-  until: _bazarr_check.status == 200
+  until: _bazarr_check.status in [200, 401]
   retries: 30
   delay: 10
 
